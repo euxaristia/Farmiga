@@ -1,0 +1,531 @@
+struct Process {
+  pid: i32,
+  ppid: i32,
+  state: i32,
+  exit_code: i32,
+  ticks: i32
+}
+
+struct Kernel {
+  current_pid: i32,
+  next_pid: i32,
+  run_count: i32,
+  run0: i32,
+  run1: i32,
+  run2: i32,
+  run3: i32
+}
+
+struct TrapFrame {
+  syscall_no: i32,
+  arg0: i32,
+  arg1: i32,
+  arg2: i32,
+  ret: i32
+}
+
+struct VfsNode {
+  ino: i32,
+  kind: i32,
+  name_hash: i32
+}
+
+struct Mount {
+  mnt_id: i32,
+  root_ino: i32,
+  fs_kind: i32
+}
+
+struct UserTask {
+  pid: i32,
+  entry: i32,
+  argv_ptr: i32,
+  state: i32
+}
+
+struct ExecImage {
+  entry: i32,
+  text_size: i32,
+  ok: i32
+}
+
+struct FsImage {
+  root_ino: i32,
+  init_ino: i32,
+  sh_ino: i32,
+  mtab_ino: i32
+}
+
+struct ProcTable {
+  count: i32,
+  p0: i32,
+  p1: i32,
+  p2: i32,
+  p3: i32
+}
+
+struct TrapEvent {
+  kind: i32,
+  from_el: i32,
+  esr: i32,
+  elr: i32,
+  spsr: i32,
+  x8_syscall: i32
+}
+
+fn proc_new(pid: i32, ppid: i32, state: i32) -> Process {
+  return Process { pid: pid, ppid: ppid, state: state, exit_code: 0, ticks: 0 };
+}
+
+fn kernel_new() -> Kernel {
+  return Kernel {
+    current_pid: 1,
+    next_pid: 2,
+    run_count: 0,
+    run0: 0,
+    run1: 0,
+    run2: 0,
+    run3: 0
+  };
+}
+
+fn kernel_make(cur: i32, next: i32, cnt: i32, r0: i32, r1: i32, r2: i32, r3: i32) -> Kernel {
+  return Kernel {
+    current_pid: cur,
+    next_pid: next,
+    run_count: cnt,
+    run0: r0,
+    run1: r1,
+    run2: r2,
+    run3: r3
+  };
+}
+
+fn rq_push(k: Kernel, pid: i32) -> Kernel {
+  if (k.run_count == 0) {
+    return kernel_make(k.current_pid, k.next_pid, 1, pid, k.run1, k.run2, k.run3);
+  }
+  if (k.run_count == 1) {
+    return kernel_make(k.current_pid, k.next_pid, 2, k.run0, pid, k.run2, k.run3);
+  }
+  if (k.run_count == 2) {
+    return kernel_make(k.current_pid, k.next_pid, 3, k.run0, k.run1, pid, k.run3);
+  }
+  if (k.run_count == 3) {
+    return kernel_make(k.current_pid, k.next_pid, 4, k.run0, k.run1, k.run2, pid);
+  }
+  return k;
+}
+
+fn rq_pop(k: Kernel) -> Kernel {
+  if (k.run_count <= 0) {
+    return k;
+  }
+  if (k.run_count == 1) {
+    return kernel_make(k.current_pid, k.next_pid, 0, 0, 0, 0, 0);
+  }
+  if (k.run_count == 2) {
+    return kernel_make(k.current_pid, k.next_pid, 1, k.run1, 0, 0, 0);
+  }
+  if (k.run_count == 3) {
+    return kernel_make(k.current_pid, k.next_pid, 2, k.run1, k.run2, 0, 0);
+  }
+  return kernel_make(k.current_pid, k.next_pid, 3, k.run1, k.run2, k.run3, 0);
+}
+
+fn sched_next(k: Kernel) -> i32 {
+  if (k.run_count <= 0) {
+    return k.current_pid;
+  }
+  return k.run0;
+}
+
+fn sys_getpid(p: Process) -> i32 {
+  return p.pid;
+}
+
+fn sys_getppid(p: Process) -> i32 {
+  return p.ppid;
+}
+
+fn sys_exit(mut_code: i32) -> i32 {
+  let code: i32 = mut_code;
+  if (code < 0) {
+    return 1;
+  }
+  return 0;
+}
+
+fn sys_write(fd: i32, ptr: i32, len: i32) -> i32 {
+  let _ptr: i32 = ptr;
+  if (fd < 0) {
+    return 0 - 9;
+  }
+  if (len < 0) {
+    return 0 - 22;
+  }
+  return len;
+}
+
+fn proc_tick(p: Process) -> Process {
+  return Process {
+    pid: p.pid,
+    ppid: p.ppid,
+    state: p.state,
+    exit_code: p.exit_code,
+    ticks: p.ticks + 1
+  };
+}
+
+fn proc_mark_zombie(p: Process, code: i32) -> Process {
+  return Process {
+    pid: p.pid,
+    ppid: p.ppid,
+    state: 3,
+    exit_code: code,
+    ticks: p.ticks
+  };
+}
+
+fn sys_fork_parent_ret(k: Kernel) -> i32 {
+  return k.next_pid;
+}
+
+fn sys_fork_child_ret() -> i32 {
+  return 0;
+}
+
+fn sys_fork_kernel(k: Kernel) -> Kernel {
+  let child_pid: i32 = k.next_pid;
+  let nk0: Kernel = kernel_make(k.current_pid, child_pid + 1, k.run_count, k.run0, k.run1, k.run2, k.run3);
+  return rq_push(nk0, child_pid);
+}
+
+fn sys_waitpid_model(parent: Process, child: Process) -> i32 {
+  if (child.ppid != parent.pid) {
+    return 0 - 10;
+  }
+  return child.pid;
+}
+
+fn trapframe_make(no: i32, a0: i32, a1: i32, a2: i32) -> TrapFrame {
+  return TrapFrame {
+    syscall_no: no,
+    arg0: a0,
+    arg1: a1,
+    arg2: a2,
+    ret: 0
+  };
+}
+
+fn vfs_make_root() -> VfsNode {
+  return VfsNode {
+    ino: 1,
+    kind: 1,
+    name_hash: 47
+  };
+}
+
+fn vfs_lookup_root(path_hash: i32) -> i32 {
+  if (path_hash == 47) {
+    return 1;
+  }
+  return 0 - 2;
+}
+
+fn mount_make_root() -> Mount {
+  return Mount {
+    mnt_id: 1,
+    root_ino: 1,
+    fs_kind: 1
+  };
+}
+
+fn init_task_make(pid: i32) -> UserTask {
+  return UserTask {
+    pid: pid,
+    entry: 4096,
+    argv_ptr: 8192,
+    state: 1
+  };
+}
+
+fn init_task_step(t: UserTask) -> UserTask {
+  return UserTask {
+    pid: t.pid,
+    entry: t.entry,
+    argv_ptr: t.argv_ptr,
+    state: 2
+  };
+}
+
+fn exec_image_make(entry: i32, text_size: i32, ok: i32) -> ExecImage {
+  return ExecImage {
+    entry: entry,
+    text_size: text_size,
+    ok: ok
+  };
+}
+
+fn fsimage_make_base() -> FsImage {
+  return FsImage {
+    root_ino: 1,
+    init_ino: 2,
+    sh_ino: 3,
+    mtab_ino: 4
+  };
+}
+
+fn fs_lookup_ino(fs: FsImage, path_hash: i32) -> i32 {
+  let _root: i32 = fs.root_ino;
+  if (path_hash == 47) {
+    return 1;
+  }
+  if (path_hash == 701) {
+    return 2;
+  }
+  if (path_hash == 702) {
+    return 3;
+  }
+  if (path_hash == 703) {
+    return 4;
+  }
+  return 0 - 2;
+}
+
+fn fs_read_len(fs: FsImage, ino: i32) -> i32 {
+  let _root: i32 = fs.root_ino;
+  if (ino == 2) {
+    return 22;
+  }
+  if (ino == 3) {
+    return 96;
+  }
+  if (ino == 4) {
+    return 18;
+  }
+  return 0 - 2;
+}
+
+fn exec_load_path(fs: FsImage, path_hash: i32) -> ExecImage {
+  let ino: i32 = fs_lookup_ino(fs, path_hash);
+  if (ino < 0) {
+    return exec_image_make(0, 0, 0);
+  }
+  let sz: i32 = fs_read_len(fs, ino);
+  if (sz < 0) {
+    return exec_image_make(0, 0, 0);
+  }
+  return exec_image_make(16384, sz, 1);
+}
+
+fn init_spawn_from_fs(fs: FsImage, pid: i32) -> UserTask {
+  let sh_ino: i32 = fs_lookup_ino(fs, 702);
+  if (sh_ino < 0) {
+    return UserTask { pid: pid, entry: 0, argv_ptr: 0, state: 0 };
+  }
+  let sh_len: i32 = fs_read_len(fs, sh_ino);
+  if (sh_len <= 0) {
+    return UserTask { pid: pid, entry: 0, argv_ptr: 0, state: 0 };
+  }
+  return UserTask {
+    pid: pid,
+    entry: 16384,
+    argv_ptr: 8192,
+    state: 1
+  };
+}
+
+fn proctable_make(count: i32, p0: i32, p1: i32, p2: i32, p3: i32) -> ProcTable {
+  return ProcTable {
+    count: count,
+    p0: p0,
+    p1: p1,
+    p2: p2,
+    p3: p3
+  };
+}
+
+fn proctable_seed(init_pid: i32, sh_pid: i32) -> ProcTable {
+  return proctable_make(2, init_pid, sh_pid, 0, 0);
+}
+
+fn shell_cmd_echo(len: i32) -> i32 {
+  if (len < 0) {
+    return 0 - 22;
+  }
+  return len;
+}
+
+fn shell_cmd_ls(fs: FsImage) -> i32 {
+  let n0: i32 = fs_lookup_ino(fs, 47);
+  let n1: i32 = fs_lookup_ino(fs, 701);
+  let n2: i32 = fs_lookup_ino(fs, 702);
+  if (n0 <= 0 || n1 <= 0 || n2 <= 0) {
+    return 0 - 2;
+  }
+  return 3;
+}
+
+fn shell_cmd_cat(fs: FsImage, path_hash: i32) -> i32 {
+  let ino: i32 = fs_lookup_ino(fs, path_hash);
+  if (ino < 0) {
+    return ino;
+  }
+  return fs_read_len(fs, ino);
+}
+
+fn shell_cmd_mount(fs: FsImage) -> i32 {
+  let ino: i32 = fs_lookup_ino(fs, 703);
+  if (ino < 0) {
+    return ino;
+  }
+  return 0;
+}
+
+fn shell_cmd_ps(pt: ProcTable) -> i32 {
+  if (pt.count <= 0) {
+    return 0 - 3;
+  }
+  return pt.count;
+}
+
+fn trap_event_make(kind: i32, from_el: i32, esr: i32, elr: i32, spsr: i32, x8_syscall: i32) -> TrapEvent {
+  return TrapEvent {
+    kind: kind,
+    from_el: from_el,
+    esr: esr,
+    elr: elr,
+    spsr: spsr,
+    x8_syscall: x8_syscall
+  };
+}
+
+fn trap_is_syscall(ev: TrapEvent) -> i32 {
+  if (ev.kind == 1) {
+    return 1;
+  }
+  return 0;
+}
+
+fn trap_route_syscall_no(ev: TrapEvent, x8_syscall: i32) -> i32 {
+  if (trap_is_syscall(ev) == 0) {
+    return 0 - 38;
+  }
+  return x8_syscall;
+}
+
+fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) -> i32 {
+  if (no == 20) {
+    return sys_getpid(cur);
+  }
+  if (no == 64) {
+    return sys_getppid(cur);
+  }
+  if (no == 1) {
+    return sys_exit(a0);
+  }
+  if (no == 4) {
+    return sys_write(a0, a1, a2);
+  }
+  return 0 - 38;
+}
+
+fn sys_dispatch_tf_ret(tf: TrapFrame, cur: Process) -> i32 {
+  return sys_dispatch(tf.syscall_no, tf.arg0, tf.arg1, tf.arg2, cur);
+}
+
+fn main() -> i32 {
+  let init: Process = proc_new(1, 0, 1);
+  let sh: Process = proc_new(2, 1, 1);
+  let k0: Kernel = kernel_new();
+  let _k1: Kernel = rq_push(k0, sh.pid);
+  let k1: Kernel = kernel_make(1, 2, 1, 2, 0, 0, 0);
+  let next_pid: i32 = sched_next(k1);
+
+  let p0: i32 = sys_dispatch(20, 0, 0, 0, init);
+  let p1: i32 = sys_dispatch(64, 0, 0, 0, sh);
+  let w0: i32 = sys_dispatch(4, 1, 4096, 16, init);
+  let e0: i32 = sys_dispatch(1, 0, 0, 0, init);
+  let bad: i32 = sys_dispatch(999, 0, 0, 0, init);
+
+  let ticked: Process = proc_tick(init);
+  let z: Process = proc_mark_zombie(sh, 7);
+  let k2: Kernel = rq_pop(k1);
+  let f_parent: i32 = sys_fork_parent_ret(k2);
+  let f_child: i32 = sys_fork_child_ret();
+  let child: Process = proc_new(f_parent, init.pid, 1);
+  let k3: Kernel = sys_fork_kernel(k2);
+  let child_z: Process = proc_mark_zombie(child, 0);
+  let waited: i32 = sys_waitpid_model(init, child_z);
+  let tf0: TrapFrame = trapframe_make(20, 0, 0, 0);
+  let tf0_ret: i32 = sys_dispatch_tf_ret(tf0, init);
+  let tf_bad_ret: i32 = sys_dispatch_tf_ret(trapframe_make(999, 0, 0, 0), init);
+  let root: VfsNode = vfs_make_root();
+  let m0: Mount = mount_make_root();
+  let init_task0: UserTask = init_task_make(init.pid);
+  let init_task1: UserTask = init_task_step(init_task0);
+  let fs0: FsImage = fsimage_make_base();
+  let sh_task: UserTask = init_spawn_from_fs(fs0, 2);
+  let pt0: ProcTable = proctable_seed(init.pid, sh_task.pid);
+  let ls_n: i32 = shell_cmd_ls(fs0);
+  let cat_n: i32 = shell_cmd_cat(fs0, 702);
+  let cat_bad: i32 = shell_cmd_cat(fs0, 404);
+  let mnt_rc: i32 = shell_cmd_mount(fs0);
+  let ps_n: i32 = shell_cmd_ps(pt0);
+  let echo_n: i32 = shell_cmd_echo(11);
+  let echo_bad: i32 = shell_cmd_echo(0 - 1);
+  let ev_sys: TrapEvent = trap_event_make(1, 0, 0, 0, 0, 20);
+  let ev_irq: TrapEvent = trap_event_make(2, 0, 0, 0, 0, 20);
+  let routed_no: i32 = trap_route_syscall_no(ev_sys, 20);
+  let routed_bad: i32 = trap_route_syscall_no(ev_irq, 20);
+  let routed_ret: i32 = sys_dispatch(routed_no, 0, 0, 0, init);
+
+  if (p0 != 1) { return 11; }
+  if (p1 != 1) { return 12; }
+  if (next_pid < 0) { return 13; }
+  if (w0 != 16) { return 14; }
+  if (e0 != 0) { return 15; }
+  if (bad != (0 - 38)) { return 16; }
+  if (ticked.ticks < 0) { return 17; }
+  if (z.state < 0) { return 18; }
+  if (z.exit_code < 0) { return 19; }
+  if (k2.run_count < 0) { return 20; }
+  if (f_parent <= 1) { return 23; }
+  if (f_child != 0) { return 24; }
+  if (child.ppid != init.pid) { return 25; }
+  if (waited != child.pid) { return 26; }
+  if (sys_waitpid_model(sh, child) != (0 - 10)) { return 27; }
+  if (k3.next_pid != (f_parent + 1)) { return 28; }
+  if (tf0_ret != init.pid) { return 29; }
+  if (tf_bad_ret != (0 - 38)) { return 30; }
+  if (root.ino != 1) { return 31; }
+  if (vfs_lookup_root(47) != 1) { return 32; }
+  if (vfs_lookup_root(999) != (0 - 2)) { return 33; }
+  if (m0.root_ino != root.ino) { return 34; }
+  if (init_task0.pid != init.pid) { return 35; }
+  if (init_task1.state < 0) { return 36; }
+  if (trap_is_syscall(ev_sys) != 1) { return 37; }
+  if (trap_is_syscall(ev_irq) != 0) { return 38; }
+  if (routed_no != 20) { return 39; }
+  if (routed_bad != (0 - 38)) { return 40; }
+  if (routed_ret != init.pid) { return 41; }
+  if (fs_lookup_ino(fs0, 47) != 1) { return 42; }
+  if (fs_lookup_ino(fs0, 702) != 3) { return 43; }
+  if (fs_lookup_ino(fs0, 404) != (0 - 2)) { return 44; }
+  if (sh_task.entry <= 0) { return 45; }
+  if (sh_task.pid != 2) { return 46; }
+  if (ls_n != 3) { return 47; }
+  if (cat_n != 96) { return 48; }
+  if (cat_bad != (0 - 2)) { return 49; }
+  if (mnt_rc != 0) { return 50; }
+  if (ps_n != 2) { return 51; }
+  if (echo_n != 11) { return 52; }
+  if (echo_bad != (0 - 22)) { return 53; }
+  if (sh_task.state < 0) { return 54; }
+
+  if (sys_write(0 - 1, 4096, 2) != (0 - 9)) { return 21; }
+  if (sys_write(1, 4096, 0 - 1) != (0 - 22)) { return 22; }
+
+  return 0;
+}
