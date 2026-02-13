@@ -82,6 +82,16 @@ struct TrapSnapshot {
   sys_route: i32
 }
 
+struct TrapSnapshotSlots {
+  slot_count: i32,
+  slot_kind: i32,
+  slot_esr: i32,
+  slot_elr: i32,
+  slot_spsr: i32,
+  slot_x8: i32,
+  slot_route: i32
+}
+
 fn trap_snapshot_abi_size() -> i32 { return 56; }
 fn trap_snapshot_abi_off_count() -> i32 { return 0; }
 fn trap_snapshot_abi_off_kind() -> i32 { return 8; }
@@ -430,6 +440,40 @@ fn trap_snapshot_make(trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, sy
   };
 }
 
+fn trap_snapshot_slots_make(count: i32, trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, sys_route: i32) -> TrapSnapshotSlots {
+  return TrapSnapshotSlots {
+    slot_count: count,
+    slot_kind: trap_kind,
+    slot_esr: esr,
+    slot_elr: elr,
+    slot_spsr: spsr,
+    slot_x8: x8,
+    slot_route: sys_route
+  };
+}
+
+fn trap_snapshot_slot_load(slots: TrapSnapshotSlots, byte_off: i32) -> i32 {
+  if (byte_off == trap_snapshot_abi_off_count()) { return slots.slot_count; }
+  if (byte_off == trap_snapshot_abi_off_kind()) { return slots.slot_kind; }
+  if (byte_off == trap_snapshot_abi_off_esr()) { return slots.slot_esr; }
+  if (byte_off == trap_snapshot_abi_off_elr()) { return slots.slot_elr; }
+  if (byte_off == trap_snapshot_abi_off_spsr()) { return slots.slot_spsr; }
+  if (byte_off == trap_snapshot_abi_off_x8()) { return slots.slot_x8; }
+  if (byte_off == trap_snapshot_abi_off_route()) { return slots.slot_route; }
+  return 0;
+}
+
+fn trap_snapshot_from_slots(slots: TrapSnapshotSlots) -> TrapSnapshot {
+  return trap_snapshot_make(
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_kind()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_esr()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_elr()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_spsr()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x8()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_route())
+  );
+}
+
 fn trap_snapshot_to_event(ts: TrapSnapshot) -> TrapEvent {
   let kind: i32 = ts.trap_kind;
   return trap_event_make(kind, 1, ts.esr, ts.elr, ts.spsr, ts.x8);
@@ -547,9 +591,13 @@ fn main() -> i32 {
   let route_unknown: i32 = sys_route_id(999);
   let snap_sys: TrapSnapshot = trap_snapshot_make(1, 0x54000000, 0x40081000, 0x3c5, 20, 1);
   let snap_irq: TrapSnapshot = trap_snapshot_make(2, 0, 0x40081000, 0x3c5, 20, 255);
+  let slots_sys: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081000, 0x3c5, 20, 1);
+  let snap_from_slots: TrapSnapshot = trap_snapshot_from_slots(slots_sys);
   let ev_from_snap_sys: TrapEvent = trap_snapshot_to_event(snap_sys);
   let ev_from_snap_irq: TrapEvent = trap_snapshot_to_event(snap_irq);
   let snap_route_sys: i32 = trap_snapshot_route_id(snap_sys);
+  let _slot_count: i32 = trap_snapshot_slot_load(slots_sys, trap_snapshot_abi_off_count());
+  let _slot_bad: i32 = trap_snapshot_slot_load(slots_sys, 12345);
   let abi_size: i32 = trap_snapshot_abi_size();
   let abi_off0: i32 = trap_snapshot_abi_off_count();
   let abi_off1: i32 = trap_snapshot_abi_off_kind();

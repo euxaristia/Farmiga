@@ -131,6 +131,9 @@
 - Added Coatl trap snapshot ABI constant helpers:
   - `trap_snapshot_abi_size` and fixed offset helpers for count/kind/esr/elr/spsr/x8/route
   - smoke now asserts Coatl-side ABI constants match the fixed machine snapshot layout
+- Added Coatl serialized trap snapshot ingest helpers:
+  - `TrapSnapshotSlots`, `trap_snapshot_slot_load`, `trap_snapshot_from_slots`
+  - smoke now exercises slot-based ingest (offset-driven loads) into `TrapSnapshot` and trap-event routing
 - Removed malformed trailing lines in `kernel/sysv_kernel.coatl` that could destabilize parsing.
 - `make coatl-sysv-smoke` is currently green on x86_64 host.
 
