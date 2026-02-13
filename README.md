@@ -107,6 +107,14 @@ This asserts trap runtime observability markers from QEMU logs:
 - syscall route markers (`getpid`, `unknown`)
 - non-syscall route marker (`route none`) for BRK path
 
+Trap fixture contract smoke:
+
+```bash
+make test-aarch64-trap-fixture
+```
+
+This generates a deterministic trap snapshot fixture from ELF-exported machine constants and validates layout + route fixture values for serialized ingest parity checks.
+
 Trap ABI contract smoke:
 
 ```bash

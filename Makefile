@@ -33,11 +33,11 @@ COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
 .PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
-.PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime
+.PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture
 .PHONY: coatl-userland-smoke
 
 all: aarch64
-validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime
+validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -241,6 +241,22 @@ test-aarch64-trap-runtime: test-aarch64-svc test-aarch64-svc-unknown test-aarch6
 	grep -Fq "$(EXPECTED_SYSCALL_UNKNOWN_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-unknown.log" || { echo "trap runtime check failed: missing unknown route marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-unknown.log"; exit 1; }; \
 	grep -Fq "$(EXPECTED_ROUTE_NONE_BANNER)" "$(BUILD_DIR)/qemu-aarch64-brk.log" || { echo "trap runtime check failed: missing route-none marker in brk log"; cat "$(BUILD_DIR)/qemu-aarch64-brk.log"; exit 1; }; \
 	echo "QEMU trap runtime value check passed"
+
+test-aarch64-trap-fixture: toolchain-aarch64 $(A64_ELF) | $(BUILD_DIR)
+	@set -eu; \
+	fixture="$(BUILD_DIR)/trap_snapshot_fixture.env"; \
+	NM=$(NM) bash scripts/gen_trap_snapshot_fixture.sh $(A64_ELF) "$$fixture"; \
+	grep -Eq '^trap_snapshot_size=56$$' "$$fixture" || { echo "trap fixture check failed: size mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_count=0$$' "$$fixture" || { echo "trap fixture check failed: off_count mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_kind=8$$' "$$fixture" || { echo "trap fixture check failed: off_kind mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_esr=16$$' "$$fixture" || { echo "trap fixture check failed: off_esr mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_elr=24$$' "$$fixture" || { echo "trap fixture check failed: off_elr mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_spsr=32$$' "$$fixture" || { echo "trap fixture check failed: off_spsr mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_x8=40$$' "$$fixture" || { echo "trap fixture check failed: off_x8 mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_route=48$$' "$$fixture" || { echo "trap fixture check failed: off_route mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^fixture_svc_route=1$$' "$$fixture" || { echo "trap fixture check failed: svc route fixture mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^fixture_brk_route=0$$' "$$fixture" || { echo "trap fixture check failed: brk route fixture mismatch"; cat "$$fixture"; exit 1; }; \
+	echo "QEMU trap fixture contract check passed"
 
 coatl-sysv-smoke: kernel/sysv_kernel.coatl | $(BUILD_DIR)
 	$(COATL) build kernel/sysv_kernel.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)

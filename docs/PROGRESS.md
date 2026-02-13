@@ -52,6 +52,10 @@
 - Added runtime trap value smoke target:
   - `make test-aarch64-trap-runtime`
   - validates runtime kind/route markers from QEMU logs (`svc`, `svc-unknown`, `brk`)
+- Added generated trap fixture contract smoke target:
+  - `make test-aarch64-trap-fixture`
+  - uses `scripts/gen_trap_snapshot_fixture.sh` to emit deterministic fixture data from ELF constants
+  - validates fixture layout constants and route fixtures (`svc route=1`, `brk route=0`)
 - Added trap ABI symbol smoke target:
   - `make test-aarch64-trap-abi`
   - validates required trap snapshot symbols are exported by the aarch64 ELF
