@@ -17,10 +17,39 @@
   - `aarch64-linux-gnu-`
 - Added explicit toolchain preflight target:
   - `make toolchain-aarch64`
+- Removed AArch64 linker RWX PT_LOAD warning:
+  - added explicit `PHDRS` in `arch/aarch64/linker.ld`
+  - split load segments into text (`RX`), rodata (`R`), and data+bss (`RW`)
 - Added EL1 exception/trap scaffold in AArch64 entry assembly:
   - installs `VBAR_EL1` at boot (`vector_table_el1`)
   - provides all 16 vector slots (curr EL SP0/SPx + lower EL AArch64/AArch32)
   - routes vectors to a common trap stub that increments `el1_trap_count` and prints UART trap banner
+- Upgraded EL1 trap path for syscall-boundary bring-up:
+  - captures `ESR_EL1`, `ELR_EL1`, `SPSR_EL1`, and trapped `x8` into `.bss` snapshot slots
+  - exports stable snapshot symbols (`trap_snapshot_base..trap_snapshot_end`) for a future Coatl reader bridge
+  - decodes exception class from `ESR_EL1` and classifies EC=`0x15` as AArch64 SVC/syscall trap
+  - emits deterministic serial marker:
+    - `FarmigaKernel: el1 sync syscall`
+  - adds syscall-number route markers from trapped `x8`:
+    - `getpid(20)`, `getppid(64)`, `exit(1)`, `write(4)`, `unknown`
+  - stores numeric route code into `last_sys_route` (`1/2/3/4/255`)
+- Added automated QEMU SVC trap smoke target:
+  - `make test-aarch64-svc`
+  - builds `TRAP_TEST_SVC=1` kernel variant that executes `svc #0` at startup
+  - asserts boot banner + syscall-trap banner + `getpid(20)` marker in captured serial output
+- Added automated unknown-syscall route smoke target:
+  - `make test-aarch64-svc-unknown`
+  - builds `TRAP_TEST_SVC_NO=999` variant and asserts unknown-route marker in serial output
+- Added automated non-syscall trap smoke target:
+  - `make test-aarch64-brk`
+  - builds `TRAP_TEST_BRK=1` variant and asserts generic trap banner presence
+- Added trap ABI symbol smoke target:
+  - `make test-aarch64-trap-abi`
+  - validates required trap snapshot symbols are exported by the aarch64 ELF
+  - validates fixed ABI layout constants (`trap_snapshot_size=56`, field offsets)
+- Standardized trap snapshot memory layout in `arch/aarch64/boot.S`:
+  - all fields now 64-bit slots
+  - `el1_trap_count` promoted to `.quad` for consistent layout
 
 ### SysV-inspired kernel core in Coatl
 
@@ -76,6 +105,12 @@
     - `shell_cmd_mount`
     - `shell_cmd_ps`
 - Extended smoke assertions in `main()` to verify the new userland scaffolding paths end-to-end in the host IR lane.
+- Added syscall-route parity helper in Coatl model:
+  - `sys_route_id(no)` maps `getpid/getppid/exit/write/unknown`
+  - host smoke now asserts route IDs for known and unknown syscall numbers
+- Added Coatl trap snapshot adapter model:
+  - `TrapSnapshot`, `trap_snapshot_make`, `trap_snapshot_to_event`, `trap_snapshot_route_id`
+  - smoke now asserts conversion from machine-style trap snapshot fields to `TrapEvent` syscall classification and route-id normalization
 - Removed malformed trailing lines in `kernel/sysv_kernel.coatl` that could destabilize parsing.
 - `make coatl-sysv-smoke` is currently green on x86_64 host.
 
@@ -97,6 +132,6 @@
 
 ### Next targets
 
-- Bring up AArch64 toolchain on host and make `make test-aarch64` pass.
+- Wire captured EL1 trap snapshot (`last_esr_el1` etc.) into a Coatl trapframe adapter path.
+- Bridge machine trap-route markers to Coatl syscall dispatch model parity checks.
 - Harden Coatl lowering wrapper behavior around stale `/tmp/coatl-ir-to-aarch64.wat` regeneration.
-- Wire EL1 synchronous trap decoding (ESR/ELR/SPSR capture) to the Coatl trapframe/syscall bridge.

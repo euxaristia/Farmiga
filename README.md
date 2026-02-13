@@ -7,6 +7,8 @@ FarmigaKernel is a UNIX SysV-inspired hobby kernel project with:
 
 This repository currently provides a Stage 0 foundation:
 - Bootable AArch64 kernel entry and UART console on QEMU `virt`
+- EL1 trap capture scaffold (`ESR_EL1`/`ELR_EL1`/`SPSR_EL1`) with SVC classification and syscall-number routing markers
+- Stable trap snapshot ABI symbols exported for future Coatl trapframe bridge (`trap_snapshot_base..trap_snapshot_end`)
 - SysV-like syscall dispatch core written in Coatl
 - In-memory FS + init/exec + shell-command model layer in Coatl (`echo`, `ls`, `cat`, `mount`, `ps`)
 - Build wiring for incremental migration of low-level kernel paths to Coatl
@@ -60,6 +62,41 @@ make test-aarch64
 ```
 
 This command boots the kernel in QEMU, captures serial output, and fails if the expected boot banner is missing.
+
+Automated SVC trap/syscall-boundary smoke:
+
+```bash
+make test-aarch64-svc
+```
+
+This builds a temporary trap-test kernel variant (with a startup `svc #0`, `x8=20`) and asserts EL1 syscall-trap classification plus `getpid(20)` syscall routing marker on serial.
+
+Automated unknown-syscall routing smoke:
+
+```bash
+make test-aarch64-svc-unknown
+```
+
+This builds a trap-test kernel variant (`x8=999`) and asserts the unknown-syscall routing marker on serial.
+
+Automated non-syscall trap smoke:
+
+```bash
+make test-aarch64-brk
+```
+
+This builds a trap-test kernel variant that executes `brk #42` and asserts generic EL1 trap handling is observable on serial.
+
+Trap ABI symbol smoke:
+
+```bash
+make test-aarch64-trap-abi
+```
+
+This verifies required trap snapshot symbols exist in the built AArch64 ELF (`last_esr_el1`, `last_elr_el1`, `last_spsr_el1`, `last_x8`, `last_trap_kind`, `last_sys_route`).
+It also verifies fixed layout constants:
+- size: `trap_snapshot_size=56`
+- offsets: `count=0`, `kind=8`, `esr=16`, `elr=24`, `spsr=32`, `x8=40`, `route=48`
 
 Build and run the Coatl SysV core smoke test on `x86_64` host:
 

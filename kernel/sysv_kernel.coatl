@@ -73,6 +73,15 @@ struct TrapEvent {
   x8_syscall: i32
 }
 
+struct TrapSnapshot {
+  trap_kind: i32,
+  esr: i32,
+  elr: i32,
+  spsr: i32,
+  x8: i32,
+  sys_route: i32
+}
+
 fn proc_new(pid: i32, ppid: i32, state: i32) -> Process {
   return Process { pid: pid, ppid: ppid, state: state, exit_code: 0, ticks: 0 };
 }
@@ -401,6 +410,32 @@ fn trap_event_make(kind: i32, from_el: i32, esr: i32, elr: i32, spsr: i32, x8_sy
   };
 }
 
+fn trap_snapshot_make(trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, sys_route: i32) -> TrapSnapshot {
+  return TrapSnapshot {
+    trap_kind: trap_kind,
+    esr: esr,
+    elr: elr,
+    spsr: spsr,
+    x8: x8,
+    sys_route: sys_route
+  };
+}
+
+fn trap_snapshot_to_event(ts: TrapSnapshot) -> TrapEvent {
+  let kind: i32 = ts.trap_kind;
+  return trap_event_make(kind, 1, ts.esr, ts.elr, ts.spsr, ts.x8);
+}
+
+fn trap_snapshot_route_id(ts: TrapSnapshot) -> i32 {
+  let r: i32 = ts.sys_route;
+  if (r == 1) { return r; }
+  if (r == 2) { return r; }
+  if (r == 3) { return r; }
+  if (r == 4) { return r; }
+  if (r == 255) { return r; }
+  return 255;
+}
+
 fn trap_is_syscall(ev: TrapEvent) -> i32 {
   if (ev.kind == 1) {
     return 1;
@@ -413,6 +448,22 @@ fn trap_route_syscall_no(ev: TrapEvent, x8_syscall: i32) -> i32 {
     return 0 - 38;
   }
   return x8_syscall;
+}
+
+fn sys_route_id(no: i32) -> i32 {
+  if (no == 20) {
+    return 1;
+  }
+  if (no == 64) {
+    return 2;
+  }
+  if (no == 1) {
+    return 3;
+  }
+  if (no == 4) {
+    return 4;
+  }
+  return 255;
 }
 
 fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) -> i32 {
@@ -480,6 +531,16 @@ fn main() -> i32 {
   let routed_no: i32 = trap_route_syscall_no(ev_sys, 20);
   let routed_bad: i32 = trap_route_syscall_no(ev_irq, 20);
   let routed_ret: i32 = sys_dispatch(routed_no, 0, 0, 0, init);
+  let route_getpid: i32 = sys_route_id(20);
+  let route_getppid: i32 = sys_route_id(64);
+  let route_exit: i32 = sys_route_id(1);
+  let route_write: i32 = sys_route_id(4);
+  let route_unknown: i32 = sys_route_id(999);
+  let snap_sys: TrapSnapshot = trap_snapshot_make(1, 0x54000000, 0x40081000, 0x3c5, 20, 1);
+  let snap_irq: TrapSnapshot = trap_snapshot_make(2, 0, 0x40081000, 0x3c5, 20, 255);
+  let ev_from_snap_sys: TrapEvent = trap_snapshot_to_event(snap_sys);
+  let ev_from_snap_irq: TrapEvent = trap_snapshot_to_event(snap_irq);
+  let snap_route_sys: i32 = trap_snapshot_route_id(snap_sys);
 
   if (p0 != 1) { return 11; }
   if (p1 != 1) { return 12; }
@@ -510,6 +571,15 @@ fn main() -> i32 {
   if (routed_no != 20) { return 39; }
   if (routed_bad != (0 - 38)) { return 40; }
   if (routed_ret != init.pid) { return 41; }
+  if (route_getpid != 1) { return 55; }
+  if (route_getppid != 2) { return 56; }
+  if (route_exit != 3) { return 57; }
+  if (route_write != 4) { return 58; }
+  if (route_unknown != 255) { return 59; }
+  if (trap_is_syscall(ev_from_snap_sys) != 1) { return 60; }
+  if (trap_is_syscall(ev_from_snap_irq) != 0) { return 61; }
+  if (trap_route_syscall_no(ev_from_snap_sys, 20) != 20) { return 62; }
+  if (snap_route_sys != 1) { return 63; }
   if (fs_lookup_ino(fs0, 47) != 1) { return 42; }
   if (fs_lookup_ino(fs0, 702) != 3) { return 43; }
   if (fs_lookup_ino(fs0, 404) != (0 - 2)) { return 44; }

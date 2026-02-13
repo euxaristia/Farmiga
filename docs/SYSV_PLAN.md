@@ -12,7 +12,7 @@ Status snapshots are tracked in `docs/PROGRESS.md`.
 
 - Interrupt vector table and exception decoding (EL1)
   - vector table scaffold is implemented in `arch/aarch64/boot.S`
-  - decode/register capture path remains
+  - `ESR_EL1`/`ELR_EL1`/`SPSR_EL1` capture + SVC EC decode path implemented
 - Timer tick and cooperative scheduler (`proc`, `runq`) in Coatl
   - cooperative queue model implemented (`rq_push`, `rq_pop`, `sched_next`)
 - Syscalls: `getpid`, `getppid`, `exit`, `write` (UART)
@@ -22,6 +22,11 @@ Status snapshots are tracked in `docs/PROGRESS.md`.
 
 - User/kernel split and syscall trap path
   - trapframe model + trap dispatch shim implemented in Coatl (`TrapFrame`, `sys_dispatch_tf_ret`)
+  - Coatl trap snapshot adapter model implemented (`TrapSnapshot`, `trap_snapshot_to_event`)
+  - AArch64 EL1 SVC classification + syscall-number route smoke implemented (`make test-aarch64-svc`, `make test-aarch64-svc-unknown`)
+  - Coatl syscall-route model parity helper implemented (`sys_route_id`)
+  - AArch64 BRK trap observability smoke implemented (`make test-aarch64-brk`)
+  - AArch64 trap snapshot ABI symbols + fixed layout constants smoke-validated (`make test-aarch64-trap-abi`)
 - Simple SysV-like process model: `fork`, `wait`, `exec` subset
   - `fork`/`wait` model scaffolding implemented; minimal `exec` image/load scaffolding now implemented (`ExecImage`, `exec_load_path`)
 - Flat in-memory FS image + pathname lookup
