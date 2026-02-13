@@ -96,6 +96,17 @@ make test-aarch64-brk
 
 This builds a trap-test kernel variant that executes `brk #42` and asserts generic EL1 trap handling is observable on serial.
 
+Trap runtime value smoke:
+
+```bash
+make test-aarch64-trap-runtime
+```
+
+This asserts trap runtime observability markers from QEMU logs:
+- trap kind marker (`sync`) for SVC/BRK paths
+- syscall route markers (`getpid`, `unknown`)
+- non-syscall route marker (`route none`) for BRK path
+
 Trap ABI contract smoke:
 
 ```bash

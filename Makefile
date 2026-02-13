@@ -17,6 +17,8 @@ EXPECTED_BANNER ?= FarmigaKernel: aarch64 stage0
 EXPECTED_SYSCALL_BANNER ?= FarmigaKernel: el1 sync syscall
 EXPECTED_SYSCALL_GETPID_BANNER ?= FarmigaKernel: syscall getpid(20)
 EXPECTED_SYSCALL_UNKNOWN_BANNER ?= FarmigaKernel: syscall unknown
+EXPECTED_TRAP_KIND_SYNC_BANNER ?= FarmigaKernel: trap kind sync
+EXPECTED_ROUTE_NONE_BANNER ?= FarmigaKernel: route none
 
 COATL ?= /home/euxaristia/Projects/Coatl/coatl
 COATL_ARCH ?= x86_64
@@ -31,11 +33,11 @@ COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
 .PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
-.PHONY: test-aarch64-trap-abi
+.PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime
 .PHONY: coatl-userland-smoke
 
 all: aarch64
-validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi
+validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -108,6 +110,12 @@ test-aarch64-svc: toolchain-aarch64 | $(BUILD_DIR)
 		cat "$$out_file"; \
 		exit 1; \
 	fi; \
+	if ! grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$$out_file"; then \
+		echo "QEMU svc trap check failed: trap kind sync marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
 	if ! grep -Fq "$(EXPECTED_SYSCALL_GETPID_BANNER)" "$$out_file"; then \
 		echo "QEMU svc trap check failed: getpid syscall marker not found"; \
 		echo "--- qemu output ---"; \
@@ -137,6 +145,12 @@ test-aarch64-svc-unknown: toolchain-aarch64 | $(BUILD_DIR)
 	fi; \
 	if ! grep -Fq "$(EXPECTED_SYSCALL_BANNER)" "$$out_file"; then \
 		echo "QEMU svc unknown check failed: syscall banner not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$$out_file"; then \
+		echo "QEMU svc unknown check failed: trap kind sync marker not found"; \
 		echo "--- qemu output ---"; \
 		cat "$$out_file"; \
 		exit 1; \
@@ -173,6 +187,7 @@ test-aarch64-svc-matrix: toolchain-aarch64 | $(BUILD_DIR)
 			> "$$out" 2>&1 || true; \
 		grep -Fq "$(EXPECTED_BANNER)" "$$out" || { echo "QEMU svc matrix check failed($$no): boot banner missing"; cat "$$out"; exit 1; }; \
 		grep -Fq "$(EXPECTED_SYSCALL_BANNER)" "$$out" || { echo "QEMU svc matrix check failed($$no): syscall banner missing"; cat "$$out"; exit 1; }; \
+		grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$$out" || { echo "QEMU svc matrix check failed($$no): trap kind sync marker missing"; cat "$$out"; exit 1; }; \
 		grep -Fq "$$expect" "$$out" || { echo "QEMU svc matrix check failed($$no): expected route marker missing"; cat "$$out"; exit 1; }; \
 	done; \
 	echo "QEMU svc matrix check passed"
@@ -202,10 +217,30 @@ test-aarch64-brk: toolchain-aarch64 | $(BUILD_DIR)
 		cat "$$out_file"; \
 		exit 1; \
 	fi; \
+	if ! grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$$out_file"; then \
+		echo "QEMU brk trap check failed: trap kind sync marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_ROUTE_NONE_BANNER)" "$$out_file"; then \
+		echo "QEMU brk trap check failed: route none marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
 	echo "QEMU brk trap check passed"
 
 test-aarch64-trap-abi: toolchain-aarch64 $(A64_ELF)
 	@NM=$(NM) bash scripts/check_trap_abi_contract.sh $(A64_ELF) kernel/sysv_kernel.coatl
+
+test-aarch64-trap-runtime: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-brk
+	@set -eu; \
+	grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc.log" || { echo "trap runtime check failed: missing sync kind marker in svc log"; cat "$(BUILD_DIR)/qemu-aarch64-svc.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_SYSCALL_GETPID_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc.log" || { echo "trap runtime check failed: missing getpid route marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_SYSCALL_UNKNOWN_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-unknown.log" || { echo "trap runtime check failed: missing unknown route marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-unknown.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_ROUTE_NONE_BANNER)" "$(BUILD_DIR)/qemu-aarch64-brk.log" || { echo "trap runtime check failed: missing route-none marker in brk log"; cat "$(BUILD_DIR)/qemu-aarch64-brk.log"; exit 1; }; \
+	echo "QEMU trap runtime value check passed"
 
 coatl-sysv-smoke: kernel/sysv_kernel.coatl | $(BUILD_DIR)
 	$(COATL) build kernel/sysv_kernel.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)

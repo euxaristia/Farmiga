@@ -186,6 +186,36 @@ trap_common:
   str x1, [x0]
 
   cmp x10, #1
+  b.eq 11f
+  cmp x10, #2
+  b.eq 12f
+  cmp x10, #3
+  b.eq 13f
+  cmp x10, #4
+  b.eq 14f
+  b 15f
+11:
+  ldr x0, =trap_kind_sync_banner
+  bl uart_puts
+  b 16f
+12:
+  ldr x0, =trap_kind_irq_banner
+  bl uart_puts
+  b 16f
+13:
+  ldr x0, =trap_kind_fiq_banner
+  bl uart_puts
+  b 16f
+14:
+  ldr x0, =trap_kind_serr_banner
+  bl uart_puts
+  b 16f
+15:
+  ldr x0, =trap_kind_unknown_banner
+  bl uart_puts
+16:
+
+  cmp x10, #1
   b.ne 10f
 
   ldr x1, =last_esr_el1
@@ -195,6 +225,8 @@ trap_common:
   b.eq 3f
 
   ldr x0, =trap_banner
+  bl uart_puts
+  ldr x0, =route_none_banner
   bl uart_puts
   b 4f
 
@@ -238,6 +270,8 @@ trap_common:
 10:
   ldr x0, =trap_banner
   bl uart_puts
+  ldr x0, =route_none_banner
+  bl uart_puts
 4:
   ldr x0, =last_sys_route
   str x11, [x0]
@@ -250,6 +284,16 @@ boot_banner:
   .asciz "FarmigaKernel: aarch64 stage0\r\n"
 trap_banner:
   .asciz "FarmigaKernel: el1 trap entered\r\n"
+trap_kind_sync_banner:
+  .asciz "FarmigaKernel: trap kind sync\r\n"
+trap_kind_irq_banner:
+  .asciz "FarmigaKernel: trap kind irq\r\n"
+trap_kind_fiq_banner:
+  .asciz "FarmigaKernel: trap kind fiq\r\n"
+trap_kind_serr_banner:
+  .asciz "FarmigaKernel: trap kind serr\r\n"
+trap_kind_unknown_banner:
+  .asciz "FarmigaKernel: trap kind unknown\r\n"
 syscall_banner:
   .asciz "FarmigaKernel: el1 sync syscall\r\n"
 sys_getpid_banner:
@@ -262,6 +306,8 @@ sys_write_banner:
   .asciz "FarmigaKernel: syscall write(4)\r\n"
 sys_unknown_banner:
   .asciz "FarmigaKernel: syscall unknown\r\n"
+route_none_banner:
+  .asciz "FarmigaKernel: route none\r\n"
 
 .section .bss
 .align 3

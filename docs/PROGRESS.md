@@ -46,6 +46,12 @@
 - Added automated non-syscall trap smoke target:
   - `make test-aarch64-brk`
   - builds `TRAP_TEST_BRK=1` variant and asserts generic trap banner presence
+- Added runtime trap observability markers in AArch64 serial path:
+  - trap kind banners: `sync/irq/fiq/serr/unknown`
+  - non-syscall route marker: `route none`
+- Added runtime trap value smoke target:
+  - `make test-aarch64-trap-runtime`
+  - validates runtime kind/route markers from QEMU logs (`svc`, `svc-unknown`, `brk`)
 - Added trap ABI symbol smoke target:
   - `make test-aarch64-trap-abi`
   - validates required trap snapshot symbols are exported by the aarch64 ELF
