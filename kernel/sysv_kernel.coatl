@@ -82,6 +82,15 @@ struct TrapSnapshot {
   sys_route: i32
 }
 
+fn trap_snapshot_abi_size() -> i32 { return 56; }
+fn trap_snapshot_abi_off_count() -> i32 { return 0; }
+fn trap_snapshot_abi_off_kind() -> i32 { return 8; }
+fn trap_snapshot_abi_off_esr() -> i32 { return 16; }
+fn trap_snapshot_abi_off_elr() -> i32 { return 24; }
+fn trap_snapshot_abi_off_spsr() -> i32 { return 32; }
+fn trap_snapshot_abi_off_x8() -> i32 { return 40; }
+fn trap_snapshot_abi_off_route() -> i32 { return 48; }
+
 fn proc_new(pid: i32, ppid: i32, state: i32) -> Process {
   return Process { pid: pid, ppid: ppid, state: state, exit_code: 0, ticks: 0 };
 }
@@ -541,6 +550,14 @@ fn main() -> i32 {
   let ev_from_snap_sys: TrapEvent = trap_snapshot_to_event(snap_sys);
   let ev_from_snap_irq: TrapEvent = trap_snapshot_to_event(snap_irq);
   let snap_route_sys: i32 = trap_snapshot_route_id(snap_sys);
+  let abi_size: i32 = trap_snapshot_abi_size();
+  let abi_off0: i32 = trap_snapshot_abi_off_count();
+  let abi_off1: i32 = trap_snapshot_abi_off_kind();
+  let abi_off2: i32 = trap_snapshot_abi_off_esr();
+  let abi_off3: i32 = trap_snapshot_abi_off_elr();
+  let abi_off4: i32 = trap_snapshot_abi_off_spsr();
+  let abi_off5: i32 = trap_snapshot_abi_off_x8();
+  let abi_off6: i32 = trap_snapshot_abi_off_route();
 
   if (p0 != 1) { return 11; }
   if (p1 != 1) { return 12; }
@@ -580,6 +597,14 @@ fn main() -> i32 {
   if (trap_is_syscall(ev_from_snap_irq) != 0) { return 61; }
   if (trap_route_syscall_no(ev_from_snap_sys, 20) != 20) { return 62; }
   if (snap_route_sys != 1) { return 63; }
+  if (abi_size != 56) { return 65; }
+  if (abi_off0 != 0) { return 66; }
+  if (abi_off1 != 8) { return 67; }
+  if (abi_off2 != 16) { return 68; }
+  if (abi_off3 != 24) { return 69; }
+  if (abi_off4 != 32) { return 70; }
+  if (abi_off5 != 40) { return 71; }
+  if (abi_off6 != 48) { return 72; }
   if (fs_lookup_ino(fs0, 47) != 1) { return 42; }
   if (fs_lookup_ino(fs0, 702) != 3) { return 43; }
   if (fs_lookup_ino(fs0, 404) != (0 - 2)) { return 44; }

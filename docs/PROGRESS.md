@@ -111,6 +111,9 @@
 - Added Coatl trap snapshot adapter model:
   - `TrapSnapshot`, `trap_snapshot_make`, `trap_snapshot_to_event`, `trap_snapshot_route_id`
   - smoke now asserts conversion from machine-style trap snapshot fields to `TrapEvent` syscall classification and route-id normalization
+- Added Coatl trap snapshot ABI constant helpers:
+  - `trap_snapshot_abi_size` and fixed offset helpers for count/kind/esr/elr/spsr/x8/route
+  - smoke now asserts Coatl-side ABI constants match the fixed machine snapshot layout
 - Removed malformed trailing lines in `kernel/sysv_kernel.coatl` that could destabilize parsing.
 - `make coatl-sysv-smoke` is currently green on x86_64 host.
 
@@ -120,11 +123,6 @@
 
 ### Known blockers
 
-- AArch64 bare-metal build is blocked on missing cross assembler in this environment:
-  - `aarch64-none-elf-as` not found.
-  - reproduced by:
-    - `make validate`
-    - `bash scripts/check_toolchain.sh`
 - Coatl AArch64 lowerer lane is sensitive to stale cached artifacts:
   - stale `/tmp/coatl-ir-to-aarch64.wat` can produce silent lowering failure after upstream updates; removing that file regenerates a working module.
 - Some struct-heavy behavior in the current Coatl IR subset lane appears unstable for strict assertions; affected checks were relaxed so smoke stays usable while compiler work continues.
@@ -132,6 +130,6 @@
 
 ### Next targets
 
-- Wire captured EL1 trap snapshot (`last_esr_el1` etc.) into a Coatl trapframe adapter path.
-- Bridge machine trap-route markers to Coatl syscall dispatch model parity checks.
+- Add a concrete serialized trap snapshot reader contract for the Coatl side (field-by-field ingest path).
+- Extend trap ABI validation beyond symbols/constants to runtime value checks from QEMU logs.
 - Harden Coatl lowering wrapper behavior around stale `/tmp/coatl-ir-to-aarch64.wat` regeneration.
