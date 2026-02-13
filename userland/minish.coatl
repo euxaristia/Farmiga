@@ -1,0 +1,148 @@
+struct ProcView {
+  pid: i32,
+  ppid: i32,
+  state: i32
+}
+
+struct FsView {
+  root_ok: i32,
+  init_ok: i32,
+  sh_ok: i32,
+  mtab_ok: i32
+}
+
+struct InitState {
+  pid: i32,
+  launched_shell: i32,
+  last_cmd: i32,
+  last_rc: i32
+}
+
+fn procview_make(pid: i32, ppid: i32, state: i32) -> ProcView {
+  return ProcView { pid: pid, ppid: ppid, state: state };
+}
+
+fn fsview_make(root_ok: i32, init_ok: i32, sh_ok: i32, mtab_ok: i32) -> FsView {
+  return FsView {
+    root_ok: root_ok,
+    init_ok: init_ok,
+    sh_ok: sh_ok,
+    mtab_ok: mtab_ok
+  };
+}
+
+fn fsview_default() -> FsView {
+  return fsview_make(1, 1, 1, 1);
+}
+
+fn sh_cmd_echo(len: i32) -> i32 {
+  if (len < 0) { return 0 - 22; }
+  return len;
+}
+
+fn sh_cmd_ls(fs: FsView) -> i32 {
+  if (fs.root_ok == 0 || fs.init_ok == 0 || fs.sh_ok == 0) {
+    return 0 - 2;
+  }
+  return 3;
+}
+
+fn sh_cmd_cat(fs: FsView, file_id: i32) -> i32 {
+  if (fs.sh_ok == 0) {
+    return 0 - 2;
+  }
+  if (file_id == 1) { return 22; }
+  if (file_id == 2) { return 96; }
+  if (file_id == 3) { return 18; }
+  return 0 - 2;
+}
+
+fn sh_cmd_mount(fs: FsView) -> i32 {
+  if (fs.mtab_ok == 0) {
+    return 0 - 2;
+  }
+  return 0;
+}
+
+fn sh_cmd_ps(count: i32) -> i32 {
+  if (count <= 0) {
+    return 0 - 3;
+  }
+  return count;
+}
+
+fn sh_dispatch(cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) -> i32 {
+  if (cmd_id == 1) { return sh_cmd_echo(a0); }
+  if (cmd_id == 2) { return sh_cmd_ls(fs); }
+  if (cmd_id == 3) { return sh_cmd_cat(fs, a0); }
+  if (cmd_id == 4) { return sh_cmd_mount(fs); }
+  if (cmd_id == 5) { return sh_cmd_ps(proc_count); }
+  return 0 - 38;
+}
+
+fn init_make(pid: i32) -> InitState {
+  return InitState {
+    pid: pid,
+    launched_shell: 0,
+    last_cmd: 0,
+    last_rc: 0
+  };
+}
+
+fn init_launch_shell(st: InitState, fs: FsView) -> InitState {
+  if (fs.sh_ok == 0) {
+    return InitState {
+      pid: st.pid,
+      launched_shell: 0,
+      last_cmd: st.last_cmd,
+      last_rc: 0 - 2
+    };
+  }
+  return InitState {
+    pid: st.pid,
+    launched_shell: 1,
+    last_cmd: st.last_cmd,
+    last_rc: 0
+  };
+}
+
+fn init_run_once(st: InitState, cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) -> InitState {
+  let rc: i32 = sh_dispatch(cmd_id, a0, fs, proc_count);
+  return InitState {
+    pid: st.pid,
+    launched_shell: st.launched_shell,
+    last_cmd: cmd_id,
+    last_rc: rc
+  };
+}
+
+fn main() -> i32 {
+  let fs0: FsView = fsview_default();
+  let _p0: ProcView = procview_make(1, 0, 1);
+  let _p1: ProcView = procview_make(2, 1, 1);
+  let proc_count: i32 = 2;
+
+  let i0: InitState = init_make(1);
+  let i1: InitState = init_launch_shell(i0, fs0);
+  let i6: InitState = init_run_once(i1, 5, 0, fs0, proc_count);
+  let rc_echo: i32 = sh_dispatch(1, 5, fs0, proc_count);
+  let rc_ls: i32 = sh_dispatch(2, 0, fs0, proc_count);
+  let rc_cat: i32 = sh_dispatch(3, 2, fs0, proc_count);
+  let rc_mount: i32 = sh_dispatch(4, 0, fs0, proc_count);
+  let rc_ps: i32 = sh_dispatch(5, 0, fs0, proc_count);
+  let bad: i32 = sh_dispatch(999, 0, fs0, proc_count);
+
+  if (i1.launched_shell != 1) { return 11; }
+  if (rc_echo != 5) { return 12; }
+  if (rc_ls != 3) { return 13; }
+  if (rc_cat != 96) { return 14; }
+  if (rc_mount != 0) { return 15; }
+  if (rc_ps != 2) { return 16; }
+  if (bad != (0 - 38)) { return 17; }
+  if (sh_cmd_echo(0 - 1) != (0 - 22)) { return 18; }
+  if (sh_cmd_cat(fs0, 404) != (0 - 2)) { return 19; }
+  if (sh_cmd_ps(0) != (0 - 3)) { return 21; }
+  if (i6.last_cmd < 0) { return 22; }
+
+  return 0;
+}

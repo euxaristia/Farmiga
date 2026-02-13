@@ -47,4 +47,5 @@ Status snapshots are tracked in `docs/PROGRESS.md`.
 - ELF loader, init process, shell prototype
   - init-task model scaffold implemented (`UserTask`)
   - init launch from FS and shell command handlers modeled for smoke (`init_spawn_from_fs`, `shell_cmd_echo/ls/cat/mount/ps`)
+  - dedicated Coatl minimal userland smoke model added (`userland/minish.coatl`)
 - Cross-arch CI for `aarch64` and `x86_64`

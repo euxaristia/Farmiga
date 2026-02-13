@@ -18,6 +18,7 @@ This repository currently provides a Stage 0 foundation:
 - `arch/aarch64/boot.S`: reset entry, stack setup, UART console output
 - `arch/aarch64/linker.ld`: bare-metal linker script
 - `kernel/sysv_kernel.coatl`: SysV-inspired syscall/process core model in Coatl
+- `userland/minish.coatl`: minimal `init` + shell-command model smoke in Coatl
 - `Makefile`: build/run/smoke targets
 - `docs/SYSV_PLAN.md`: staged plan from Stage 0 to multi-process SysV-like kernel
 - `docs/PROGRESS.md`: dated implementation log and blockers
@@ -110,6 +111,12 @@ Build and run the Coatl SysV core smoke test on `x86_64` host:
 
 ```bash
 make coatl-sysv-smoke
+```
+
+Build and run the Coatl userland (`init`/`sh`) smoke model on `x86_64` host:
+
+```bash
+make coatl-userland-smoke
 ```
 
 Run the full validation suite (includes QEMU boot test):

@@ -107,6 +107,10 @@
     - `shell_cmd_cat`
     - `shell_cmd_mount`
     - `shell_cmd_ps`
+- Added dedicated Coatl minimal userland smoke artifact:
+  - `userland/minish.coatl` with `init` launch + shell-dispatch model flow
+  - command coverage in smoke lane: `echo`, `ls`, `cat`, `mount`, `ps`, unknown
+  - new build target: `make coatl-userland-smoke`
 - Extended smoke assertions in `main()` to verify the new userland scaffolding paths end-to-end in the host IR lane.
 - Added syscall-route parity helper in Coatl model:
   - `sys_route_id(no)` maps `getpid/getppid/exit/write/unknown`

@@ -27,13 +27,15 @@ A64_ELF := $(BUILD_DIR)/farmiga-aarch64.elf
 A64_IMG := $(BUILD_DIR)/farmiga-aarch64.img
 A64_BOOT_OBJ := $(BUILD_DIR)/boot_aarch64.o
 COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
+COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
 .PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi
+.PHONY: coatl-userland-smoke
 
 all: aarch64
-validate: coatl-sysv-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi
+validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -236,6 +238,11 @@ coatl-sysv-smoke: kernel/sysv_kernel.coatl | $(BUILD_DIR)
 	$(COATL) build kernel/sysv_kernel.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)
 	$(COATL_SMOKE_BIN)
 	@echo "coatl sysv smoke exit=$$?"
+
+coatl-userland-smoke: userland/minish.coatl | $(BUILD_DIR)
+	$(COATL) build userland/minish.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_USERLAND_SMOKE_BIN)
+	$(COATL_USERLAND_SMOKE_BIN)
+	@echo "coatl userland smoke exit=$$?"
 
 clean:
 	rm -rf $(BUILD_DIR)
