@@ -205,34 +205,7 @@ test-aarch64-brk: toolchain-aarch64 | $(BUILD_DIR)
 	echo "QEMU brk trap check passed"
 
 test-aarch64-trap-abi: toolchain-aarch64 $(A64_ELF)
-	@set -eu; \
-	nm_out="$(BUILD_DIR)/farmiga-aarch64.nm"; \
-	$(NM) $(A64_ELF) > "$$nm_out"; \
-	grep -Eq '[[:space:]]trap_snapshot_base$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_base"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_end$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_end"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_size$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_size"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_count$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_count"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_kind$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_kind"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_esr$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_esr"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_elr$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_elr"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_spsr$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_spsr"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_x8$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_x8"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]trap_snapshot_off_route$$' "$$nm_out" || { echo "trap ABI check failed: missing trap_snapshot_off_route"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]last_esr_el1$$' "$$nm_out" || { echo "trap ABI check failed: missing last_esr_el1"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]last_elr_el1$$' "$$nm_out" || { echo "trap ABI check failed: missing last_elr_el1"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]last_spsr_el1$$' "$$nm_out" || { echo "trap ABI check failed: missing last_spsr_el1"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]last_x8$$' "$$nm_out" || { echo "trap ABI check failed: missing last_x8"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]last_trap_kind$$' "$$nm_out" || { echo "trap ABI check failed: missing last_trap_kind"; cat "$$nm_out"; exit 1; }; \
-	grep -Eq '[[:space:]]last_sys_route$$' "$$nm_out" || { echo "trap ABI check failed: missing last_sys_route"; cat "$$nm_out"; exit 1; }; \
-	awk '$$3=="trap_snapshot_size" { if (tolower($$1)!="0000000000000038") { print "trap ABI check failed: trap_snapshot_size=" $$1 " expected 0000000000000038"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_count" { if (tolower($$1)!="0000000000000000") { print "trap ABI check failed: trap_snapshot_off_count=" $$1 " expected 0"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_kind" { if (tolower($$1)!="0000000000000008") { print "trap ABI check failed: trap_snapshot_off_kind=" $$1 " expected 8"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_esr" { if (tolower($$1)!="0000000000000010") { print "trap ABI check failed: trap_snapshot_off_esr=" $$1 " expected 16"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_elr" { if (tolower($$1)!="0000000000000018") { print "trap ABI check failed: trap_snapshot_off_elr=" $$1 " expected 24"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_spsr" { if (tolower($$1)!="0000000000000020") { print "trap ABI check failed: trap_snapshot_off_spsr=" $$1 " expected 32"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_x8" { if (tolower($$1)!="0000000000000028") { print "trap ABI check failed: trap_snapshot_off_x8=" $$1 " expected 40"; exit 1 } }' "$$nm_out"; \
-	awk '$$3=="trap_snapshot_off_route" { if (tolower($$1)!="0000000000000030") { print "trap ABI check failed: trap_snapshot_off_route=" $$1 " expected 48"; exit 1 } }' "$$nm_out"; \
-	echo "QEMU trap ABI symbol check passed"
+	@NM=$(NM) bash scripts/check_trap_abi_contract.sh $(A64_ELF) kernel/sysv_kernel.coatl
 
 coatl-sysv-smoke: kernel/sysv_kernel.coatl | $(BUILD_DIR)
 	$(COATL) build kernel/sysv_kernel.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)

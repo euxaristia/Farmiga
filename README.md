@@ -96,14 +96,14 @@ make test-aarch64-brk
 
 This builds a trap-test kernel variant that executes `brk #42` and asserts generic EL1 trap handling is observable on serial.
 
-Trap ABI symbol smoke:
+Trap ABI contract smoke:
 
 ```bash
 make test-aarch64-trap-abi
 ```
 
-This verifies required trap snapshot symbols exist in the built AArch64 ELF (`last_esr_el1`, `last_elr_el1`, `last_spsr_el1`, `last_x8`, `last_trap_kind`, `last_sys_route`).
-It also verifies fixed layout constants:
+This verifies required trap snapshot symbols exist in the built AArch64 ELF (`last_esr_el1`, `last_elr_el1`, `last_spsr_el1`, `last_x8`, `last_trap_kind`, `last_sys_route`), checks the fixed layout constants, and enforces parity with Coatl-side ABI helpers in `kernel/sysv_kernel.coatl`.
+Layout constants:
 - size: `trap_snapshot_size=56`
 - offsets: `count=0`, `kind=8`, `esr=16`, `elr=24`, `spsr=32`, `x8=40`, `route=48`
 

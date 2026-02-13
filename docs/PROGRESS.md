@@ -50,6 +50,10 @@
   - `make test-aarch64-trap-abi`
   - validates required trap snapshot symbols are exported by the aarch64 ELF
   - validates fixed ABI layout constants (`trap_snapshot_size=56`, field offsets)
+- Upgraded trap ABI smoke into a cross-layer contract check:
+  - new script: `scripts/check_trap_abi_contract.sh`
+  - validates symbol presence + layout constants + snapshot span (`trap_snapshot_end - trap_snapshot_base`)
+  - validates machine ABI constant parity with Coatl helpers (`trap_snapshot_abi_*`)
 - Standardized trap snapshot memory layout in `arch/aarch64/boot.S`:
   - all fields now 64-bit slots
   - `el1_trap_count` promoted to `.quad` for consistent layout
@@ -137,6 +141,6 @@
 
 ### Next targets
 
-- Add a concrete serialized trap snapshot reader contract for the Coatl side (field-by-field ingest path).
-- Extend trap ABI validation beyond symbols/constants to runtime value checks from QEMU logs.
+- Extend trap ABI validation to runtime value checks from QEMU logs.
+- Start wiring trap snapshot bytes into a minimal serialized reader path on the Coatl side.
 - Harden Coatl lowering wrapper behavior around stale `/tmp/coatl-ir-to-aarch64.wat` regeneration.

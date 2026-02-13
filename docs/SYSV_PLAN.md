@@ -27,7 +27,7 @@ Status snapshots are tracked in `docs/PROGRESS.md`.
   - AArch64 EL1 SVC classification + syscall-number route smoke implemented (`make test-aarch64-svc`, `make test-aarch64-svc-unknown`, `make test-aarch64-svc-matrix`)
   - Coatl syscall-route model parity helper implemented (`sys_route_id`)
   - AArch64 BRK trap observability smoke implemented (`make test-aarch64-brk`)
-  - AArch64 trap snapshot ABI symbols + fixed layout constants smoke-validated (`make test-aarch64-trap-abi`)
+  - AArch64 trap snapshot ABI contract (symbols/constants/span/Coatl parity) smoke-validated (`make test-aarch64-trap-abi`)
 - Simple SysV-like process model: `fork`, `wait`, `exec` subset
   - `fork`/`wait` model scaffolding implemented; minimal `exec` image/load scaffolding now implemented (`ExecImage`, `exec_load_path`)
 - Flat in-memory FS image + pathname lookup
