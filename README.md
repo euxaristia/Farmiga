@@ -123,6 +123,22 @@ make test-coatl-trap-fixture-parity
 
 This validates the generated fixture values against Coatl trap ABI helper constants in `kernel/sysv_kernel.coatl`.
 
+Generate Coatl trap ABI constants artifact:
+
+```bash
+make gen-coatl-trap-abi-constants
+```
+
+This emits `build/trap_abi_generated.coatl` from machine-derived fixture constants.
+
+Generated constants sync smoke:
+
+```bash
+make test-coatl-generated-trap-abi-sync
+```
+
+This checks that generated Coatl constants stay in sync with `kernel/sysv_kernel.coatl` ABI helper functions.
+
 Trap ABI contract smoke:
 
 ```bash

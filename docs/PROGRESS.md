@@ -59,6 +59,13 @@
 - Added Coatl fixture parity smoke target:
   - `make test-coatl-trap-fixture-parity`
   - uses `scripts/check_trap_fixture_parity.sh` to assert generated fixture values match Coatl trap ABI helper constants
+- Added generated Coatl trap ABI constants artifact flow:
+  - generator: `scripts/gen_coatl_trap_abi_constants.sh`
+  - target: `make gen-coatl-trap-abi-constants` (emits `build/trap_abi_generated.coatl`)
+- Added generated-constants sync smoke:
+  - checker: `scripts/check_coatl_generated_constants_sync.sh`
+  - target: `make test-coatl-generated-trap-abi-sync`
+  - validates generated constants match `kernel/sysv_kernel.coatl` ABI helper functions
 - Added trap ABI symbol smoke target:
   - `make test-aarch64-trap-abi`
   - validates required trap snapshot symbols are exported by the aarch64 ELF

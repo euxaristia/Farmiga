@@ -34,10 +34,11 @@ COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 .PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
+.PHONY: gen-coatl-trap-abi-constants test-coatl-generated-trap-abi-sync
 .PHONY: coatl-userland-smoke
 
 all: aarch64
-validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
+validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity test-coatl-generated-trap-abi-sync
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -260,6 +261,12 @@ test-aarch64-trap-fixture: toolchain-aarch64 $(A64_ELF) | $(BUILD_DIR)
 
 test-coatl-trap-fixture-parity: test-aarch64-trap-fixture
 	@bash scripts/check_trap_fixture_parity.sh $(BUILD_DIR)/trap_snapshot_fixture.env kernel/sysv_kernel.coatl
+
+gen-coatl-trap-abi-constants: test-aarch64-trap-fixture | $(BUILD_DIR)
+	@bash scripts/gen_coatl_trap_abi_constants.sh $(BUILD_DIR)/trap_snapshot_fixture.env $(BUILD_DIR)/trap_abi_generated.coatl
+
+test-coatl-generated-trap-abi-sync: gen-coatl-trap-abi-constants
+	@bash scripts/check_coatl_generated_constants_sync.sh $(BUILD_DIR)/trap_abi_generated.coatl kernel/sysv_kernel.coatl
 
 coatl-sysv-smoke: kernel/sysv_kernel.coatl | $(BUILD_DIR)
 	$(COATL) build kernel/sysv_kernel.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)
