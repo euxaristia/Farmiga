@@ -40,6 +40,9 @@
 - Added automated unknown-syscall route smoke target:
   - `make test-aarch64-svc-unknown`
   - builds `TRAP_TEST_SVC_NO=999` variant and asserts unknown-route marker in serial output
+- Added automated syscall-route matrix smoke target:
+  - `make test-aarch64-svc-matrix`
+  - exercises `TRAP_TEST_SVC_NO=64/1/4` and asserts `getppid/exit/write` route markers
 - Added automated non-syscall trap smoke target:
   - `make test-aarch64-brk`
   - builds `TRAP_TEST_BRK=1` variant and asserts generic trap banner presence

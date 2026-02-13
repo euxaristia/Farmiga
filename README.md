@@ -79,6 +79,14 @@ make test-aarch64-svc-unknown
 
 This builds a trap-test kernel variant (`x8=999`) and asserts the unknown-syscall routing marker on serial.
 
+Automated syscall-route matrix smoke:
+
+```bash
+make test-aarch64-svc-matrix
+```
+
+This runs SVC trap variants for `x8=64`, `x8=1`, and `x8=4`, asserting `getppid`, `exit`, and `write` route markers on serial.
+
 Automated non-syscall trap smoke:
 
 ```bash

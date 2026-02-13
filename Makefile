@@ -29,11 +29,11 @@ A64_BOOT_OBJ := $(BUILD_DIR)/boot_aarch64.o
 COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
 
 .PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
-.PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-brk
+.PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi
 
 all: aarch64
-validate: coatl-sysv-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-brk test-aarch64-trap-abi
+validate: coatl-sysv-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -146,6 +146,34 @@ test-aarch64-svc-unknown: toolchain-aarch64 | $(BUILD_DIR)
 		exit 1; \
 	fi; \
 	echo "QEMU svc unknown check passed"
+
+test-aarch64-svc-matrix: toolchain-aarch64 | $(BUILD_DIR)
+	@command -v $(QEMU) >/dev/null 2>&1 || { echo "missing: $(QEMU)"; exit 1; }
+	@command -v $(TIMEOUT) >/dev/null 2>&1 || { echo "missing: $(TIMEOUT)"; exit 1; }
+	@set -eu; \
+	for no in 64 1 4; do \
+		case "$$no" in \
+			64) expect='FarmigaKernel: syscall getppid(64)' ;; \
+			1) expect='FarmigaKernel: syscall exit(1)' ;; \
+			4) expect='FarmigaKernel: syscall write(4)' ;; \
+			*) echo "internal matrix error for $$no"; exit 1 ;; \
+		esac; \
+		obj="$(BUILD_DIR)/boot_aarch64_svc_$$no.o"; \
+		elf="$(BUILD_DIR)/farmiga-aarch64-svc-$$no.elf"; \
+		out="$(BUILD_DIR)/qemu-aarch64-svc-$$no.log"; \
+		$(AS) --defsym TRAP_TEST_SVC=1 --defsym TRAP_TEST_SVC_NO=$$no -o "$$obj" arch/aarch64/boot.S; \
+		$(LD) -T arch/aarch64/linker.ld -o "$$elf" "$$obj"; \
+		$(TIMEOUT) $(QEMU_TIMEOUT_SECS) $(QEMU) \
+			-machine virt \
+			-cpu cortex-a72 \
+			-nographic \
+			-kernel "$$elf" \
+			> "$$out" 2>&1 || true; \
+		grep -Fq "$(EXPECTED_BANNER)" "$$out" || { echo "QEMU svc matrix check failed($$no): boot banner missing"; cat "$$out"; exit 1; }; \
+		grep -Fq "$(EXPECTED_SYSCALL_BANNER)" "$$out" || { echo "QEMU svc matrix check failed($$no): syscall banner missing"; cat "$$out"; exit 1; }; \
+		grep -Fq "$$expect" "$$out" || { echo "QEMU svc matrix check failed($$no): expected route marker missing"; cat "$$out"; exit 1; }; \
+	done; \
+	echo "QEMU svc matrix check passed"
 
 test-aarch64-brk: toolchain-aarch64 | $(BUILD_DIR)
 	@command -v $(QEMU) >/dev/null 2>&1 || { echo "missing: $(QEMU)"; exit 1; }

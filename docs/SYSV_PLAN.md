@@ -24,7 +24,7 @@ Status snapshots are tracked in `docs/PROGRESS.md`.
   - trapframe model + trap dispatch shim implemented in Coatl (`TrapFrame`, `sys_dispatch_tf_ret`)
   - Coatl trap snapshot adapter model implemented (`TrapSnapshot`, `trap_snapshot_to_event`)
   - Coatl trap snapshot ABI constants implemented (size + fixed field offsets)
-  - AArch64 EL1 SVC classification + syscall-number route smoke implemented (`make test-aarch64-svc`, `make test-aarch64-svc-unknown`)
+  - AArch64 EL1 SVC classification + syscall-number route smoke implemented (`make test-aarch64-svc`, `make test-aarch64-svc-unknown`, `make test-aarch64-svc-matrix`)
   - Coatl syscall-route model parity helper implemented (`sys_route_id`)
   - AArch64 BRK trap observability smoke implemented (`make test-aarch64-brk`)
   - AArch64 trap snapshot ABI symbols + fixed layout constants smoke-validated (`make test-aarch64-trap-abi`)
