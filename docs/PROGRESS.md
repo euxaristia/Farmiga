@@ -56,6 +56,9 @@
   - `make test-aarch64-trap-fixture`
   - uses `scripts/gen_trap_snapshot_fixture.sh` to emit deterministic fixture data from ELF constants
   - validates fixture layout constants and route fixtures (`svc route=1`, `brk route=0`)
+- Added Coatl fixture parity smoke target:
+  - `make test-coatl-trap-fixture-parity`
+  - uses `scripts/check_trap_fixture_parity.sh` to assert generated fixture values match Coatl trap ABI helper constants
 - Added trap ABI symbol smoke target:
   - `make test-aarch64-trap-abi`
   - validates required trap snapshot symbols are exported by the aarch64 ELF

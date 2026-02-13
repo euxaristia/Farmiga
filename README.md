@@ -115,6 +115,14 @@ make test-aarch64-trap-fixture
 
 This generates a deterministic trap snapshot fixture from ELF-exported machine constants and validates layout + route fixture values for serialized ingest parity checks.
 
+Coatl fixture parity smoke:
+
+```bash
+make test-coatl-trap-fixture-parity
+```
+
+This validates the generated fixture values against Coatl trap ABI helper constants in `kernel/sysv_kernel.coatl`.
+
 Trap ABI contract smoke:
 
 ```bash

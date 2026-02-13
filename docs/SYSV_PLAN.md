@@ -30,6 +30,7 @@ Status snapshots are tracked in `docs/PROGRESS.md`.
   - AArch64 BRK trap observability smoke implemented (`make test-aarch64-brk`)
   - AArch64 trap runtime value smoke implemented (`make test-aarch64-trap-runtime`)
   - AArch64 generated trap fixture contract smoke implemented (`make test-aarch64-trap-fixture`)
+  - Coatl fixture parity smoke implemented (`make test-coatl-trap-fixture-parity`)
   - AArch64 trap snapshot ABI contract (symbols/constants/span/Coatl parity) smoke-validated (`make test-aarch64-trap-abi`)
 - Simple SysV-like process model: `fork`, `wait`, `exec` subset
   - `fork`/`wait` model scaffolding implemented; minimal `exec` image/load scaffolding now implemented (`ExecImage`, `exec_load_path`)
