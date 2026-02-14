@@ -59,6 +59,10 @@
 - Added user-mode transition scaffolding in Coatl model layer:
   - `CpuContext`, `cpu_context_el1_boot`, `cpu_enter_user`
   - host smoke now asserts modeled EL transition semantics (`EL1 -> EL0`) for spawned user task context.
+- Added mount-aware path resolution in Coatl VFS/userland model:
+  - `fs_resolve_path(fs, mt, path_hash)` gates non-root lookups on mount availability
+  - `init_spawn_from_fs` and `shell_cmd_cat` now route through mount-aware resolution
+  - smoke now asserts mounted/unmounted behavior for shell spawn and `cat`.
 
 ## 2026-02-12
 

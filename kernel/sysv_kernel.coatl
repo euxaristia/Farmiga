@@ -386,6 +386,16 @@ fn fs_lookup_ino(fs: FsImage, path_hash: i32) -> i32 {
   return 0 - 2;
 }
 
+fn fs_resolve_path(fs: FsImage, mt: MountTable, path_hash: i32) -> i32 {
+  if (path_hash == 47) {
+    return fs_lookup_ino(fs, path_hash);
+  }
+  if (mounttable_count(mt) <= 0) {
+    return 0 - 2;
+  }
+  return fs_lookup_ino(fs, path_hash);
+}
+
 fn fs_read_len(fs: FsImage, ino: i32) -> i32 {
   let _root: i32 = fs.root_ino;
   if (ino == 2) {
@@ -412,8 +422,8 @@ fn exec_load_path(fs: FsImage, path_hash: i32) -> ExecImage {
   return exec_image_make(16384, sz, 1);
 }
 
-fn init_spawn_from_fs(fs: FsImage, pid: i32) -> UserTask {
-  let sh_ino: i32 = fs_lookup_ino(fs, 702);
+fn init_spawn_from_fs(fs: FsImage, mt: MountTable, pid: i32) -> UserTask {
+  let sh_ino: i32 = fs_resolve_path(fs, mt, 702);
   if (sh_ino < 0) {
     return UserTask { pid: pid, entry: 0, argv_ptr: 0, state: 0 };
   }
@@ -460,8 +470,8 @@ fn shell_cmd_ls(fs: FsImage) -> i32 {
   return 3;
 }
 
-fn shell_cmd_cat(fs: FsImage, path_hash: i32) -> i32 {
-  let ino: i32 = fs_lookup_ino(fs, path_hash);
+fn shell_cmd_cat(fs: FsImage, mt: MountTable, path_hash: i32) -> i32 {
+  let ino: i32 = fs_resolve_path(fs, mt, path_hash);
   if (ino < 0) {
     return ino;
   }
@@ -669,12 +679,14 @@ fn main() -> i32 {
   let fs0: FsImage = fsimage_make_base();
   let mt0: MountTable = mounttable_new();
   let mt1: MountTable = mounttable_mount_root(mt0, fs0);
-  let sh_task: UserTask = init_spawn_from_fs(fs0, 2);
+  let sh_task: UserTask = init_spawn_from_fs(fs0, mt1, 2);
+  let sh_task_unmounted: UserTask = init_spawn_from_fs(fs0, mt0, 2);
   let cpu1: CpuContext = cpu_enter_user(cpu0, sh_task);
   let pt0: ProcTable = proctable_seed(init.pid, sh_task.pid);
   let ls_n: i32 = shell_cmd_ls(fs0);
-  let cat_n: i32 = shell_cmd_cat(fs0, 702);
-  let cat_bad: i32 = shell_cmd_cat(fs0, 404);
+  let cat_n: i32 = shell_cmd_cat(fs0, mt1, 702);
+  let cat_bad: i32 = shell_cmd_cat(fs0, mt1, 404);
+  let cat_unmounted: i32 = shell_cmd_cat(fs0, mt0, 702);
   let mnt_rc: i32 = shell_cmd_mount(fs0);
   let ps_n: i32 = shell_cmd_ps(pt0);
   let echo_n: i32 = shell_cmd_echo(11);
@@ -780,9 +792,11 @@ fn main() -> i32 {
   if (fs_lookup_ino(fs0, 404) != (0 - 2)) { return 44; }
   if (sh_task.entry <= 0) { return 45; }
   if (sh_task.pid != 2) { return 46; }
+  if (sh_task_unmounted.state < 0) { return 90; }
   if (ls_n != 3) { return 47; }
   if (cat_n != 96) { return 48; }
   if (cat_bad != (0 - 2)) { return 49; }
+  if (cat_unmounted != (0 - 2)) { return 91; }
   if (mnt_rc != 0) { return 50; }
   if (ps_n != 2) { return 51; }
   if (echo_n != 11) { return 52; }
