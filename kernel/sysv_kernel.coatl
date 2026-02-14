@@ -49,6 +49,12 @@ struct UserTask {
   state: i32
 }
 
+struct CpuContext {
+  el: i32,
+  sp: i32,
+  pc: i32
+}
+
 struct ExecImage {
   entry: i32,
   text_size: i32,
@@ -323,6 +329,26 @@ fn init_task_step(t: UserTask) -> UserTask {
     entry: t.entry,
     argv_ptr: t.argv_ptr,
     state: 2
+  };
+}
+
+fn cpu_context_el1_boot() -> CpuContext {
+  return CpuContext {
+    el: 1,
+    sp: 65536,
+    pc: 4096
+  };
+}
+
+fn cpu_enter_user(ctx: CpuContext, task: UserTask) -> CpuContext {
+  let _el1_sp: i32 = ctx.sp;
+  if (task.entry <= 0) {
+    return ctx;
+  }
+  return CpuContext {
+    el: 0,
+    sp: task.argv_ptr,
+    pc: task.entry
   };
 }
 
@@ -639,10 +665,12 @@ fn main() -> i32 {
   let m0: Mount = mount_make_root();
   let init_task0: UserTask = init_task_make(init.pid);
   let init_task1: UserTask = init_task_step(init_task0);
+  let cpu0: CpuContext = cpu_context_el1_boot();
   let fs0: FsImage = fsimage_make_base();
   let mt0: MountTable = mounttable_new();
   let mt1: MountTable = mounttable_mount_root(mt0, fs0);
   let sh_task: UserTask = init_spawn_from_fs(fs0, 2);
+  let cpu1: CpuContext = cpu_enter_user(cpu0, sh_task);
   let pt0: ProcTable = proctable_seed(init.pid, sh_task.pid);
   let ls_n: i32 = shell_cmd_ls(fs0);
   let cat_n: i32 = shell_cmd_cat(fs0, 702);
@@ -714,6 +742,9 @@ fn main() -> i32 {
   if (m0.root_ino != root.ino) { return 34; }
   if (mounttable_count(mt0) != 0) { return 85; }
   if (mounttable_count(mt1) != 1) { return 86; }
+  if (cpu0.el < 0) { return 87; }
+  if (cpu1.el < 0) { return 88; }
+  if (cpu1.pc < 0) { return 89; }
   if (init_task0.pid != init.pid) { return 35; }
   if (init_task1.state < 0) { return 36; }
   if (trap_is_syscall(ev_sys) != 1) { return 37; }

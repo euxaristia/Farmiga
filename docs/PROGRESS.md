@@ -56,6 +56,9 @@
 - Added minimal mount-table model scaffolding in Coatl kernel layer:
   - `MountTable`, `mounttable_new`, `mounttable_mount_root`, `mounttable_count`
   - host smoke now asserts root mount registration/count semantics (`0 -> 1`).
+- Added user-mode transition scaffolding in Coatl model layer:
+  - `CpuContext`, `cpu_context_el1_boot`, `cpu_enter_user`
+  - host smoke now asserts modeled EL transition semantics (`EL1 -> EL0`) for spawned user task context.
 
 ## 2026-02-12
 
