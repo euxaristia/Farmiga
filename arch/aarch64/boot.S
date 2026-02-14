@@ -157,7 +157,8 @@ _start:
   bl shell_cmd_begin
   ldr x0, =shell_exit_banner
   bl uart_puts
-  b 99f
+  bl shell_prompt
+  b 1b
 
 21:  // ls
   cmp x1, #2
@@ -259,9 +260,6 @@ _start:
   bl uart_puts
   bl shell_prompt
   b 1b
-99:
-  wfe
-  b 99b
 
 uart_puts:
   ldrb w1, [x0], #1

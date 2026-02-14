@@ -95,6 +95,8 @@ Line-based demo commands:
 - `ps`
 - `exit`
 
+`exit` currently returns to the prompt (no poweroff yet).
+
 Automated QEMU validation (recommended for every change):
 
 ```bash
