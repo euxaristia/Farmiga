@@ -112,65 +112,128 @@ _start:
   bl shell_prompt
 
 1:
-  bl uart_getc_blocking
-  cmp w1, #'h'
-  b.eq 20f
-  cmp w1, #'l'
-  b.eq 21f
-  cmp w1, #'c'
-  b.eq 22f
-  cmp w1, #'e'
-  b.eq 23f
-  cmp w1, #'m'
-  b.eq 24f
-  cmp w1, #'p'
-  b.eq 25f
-  cmp w1, #'\r'
+  bl shell_readline
+  cmp x1, #0
   b.eq 26f
-  cmp w1, #'\n'
-  b.eq 26f
-  bl shell_cmd_begin
-  ldr x0, =shell_unknown_banner
-  bl uart_puts
-  bl shell_prompt
-  b 1b
-20:
+
+  cmp x1, #4
+  b.ne 21f
+  ldrb w2, [x0, #0]
+  cmp w2, #'h'
+  b.ne 21f
+  ldrb w2, [x0, #1]
+  cmp w2, #'e'
+  b.ne 21f
+  ldrb w2, [x0, #2]
+  cmp w2, #'l'
+  b.ne 21f
+  ldrb w2, [x0, #3]
+  cmp w2, #'p'
+  b.ne 21f
   bl shell_cmd_begin
   ldr x0, =shell_help_banner
   bl uart_puts
   bl shell_prompt
   b 1b
-21:
+
+21:  // ls
+  cmp x1, #2
+  b.ne 22f
+  ldrb w2, [x0, #0]
+  cmp w2, #'l'
+  b.ne 22f
+  ldrb w2, [x0, #1]
+  cmp w2, #'s'
+  b.ne 22f
   bl shell_cmd_begin
   ldr x0, =shell_ls_banner
   bl uart_puts
   bl shell_prompt
   b 1b
-22:
+
+22:  // cat
+  cmp x1, #3
+  b.ne 23f
+  ldrb w2, [x0, #0]
+  cmp w2, #'c'
+  b.ne 23f
+  ldrb w2, [x0, #1]
+  cmp w2, #'a'
+  b.ne 23f
+  ldrb w2, [x0, #2]
+  cmp w2, #'t'
+  b.ne 23f
   bl shell_cmd_begin
   ldr x0, =shell_cat_banner
   bl uart_puts
   bl shell_prompt
   b 1b
-23:
+
+23:  // echo
+  cmp x1, #4
+  b.ne 24f
+  ldrb w2, [x0, #0]
+  cmp w2, #'e'
+  b.ne 24f
+  ldrb w2, [x0, #1]
+  cmp w2, #'c'
+  b.ne 24f
+  ldrb w2, [x0, #2]
+  cmp w2, #'h'
+  b.ne 24f
+  ldrb w2, [x0, #3]
+  cmp w2, #'o'
+  b.ne 24f
   bl shell_cmd_begin
   ldr x0, =shell_echo_banner
   bl uart_puts
   bl shell_prompt
   b 1b
-24:
+
+24:  // mount
+  cmp x1, #5
+  b.ne 25f
+  ldrb w2, [x0, #0]
+  cmp w2, #'m'
+  b.ne 25f
+  ldrb w2, [x0, #1]
+  cmp w2, #'o'
+  b.ne 25f
+  ldrb w2, [x0, #2]
+  cmp w2, #'u'
+  b.ne 25f
+  ldrb w2, [x0, #3]
+  cmp w2, #'n'
+  b.ne 25f
+  ldrb w2, [x0, #4]
+  cmp w2, #'t'
+  b.ne 25f
   bl shell_cmd_begin
   ldr x0, =shell_mount_banner
   bl uart_puts
   bl shell_prompt
   b 1b
-25:
+25:  // ps
+  cmp x1, #2
+  b.ne 27f
+  ldrb w2, [x0, #0]
+  cmp w2, #'p'
+  b.ne 27f
+  ldrb w2, [x0, #1]
+  cmp w2, #'s'
+  b.ne 27f
   bl shell_cmd_begin
   ldr x0, =shell_ps_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 26:
+  bl shell_prompt
+  b 1b
+27:
+  bl shell_cmd_begin
+  ldr x0, =shell_unknown_banner
+  bl uart_puts
   bl shell_prompt
   b 1b
 
@@ -209,6 +272,26 @@ shell_prompt:
 shell_cmd_begin:
   ldr x0, =shell_newline_banner
   bl uart_puts
+  ret
+
+shell_readline:
+  ldr x0, =shell_line_buf
+  mov x1, #0
+30:
+  bl uart_getc_blocking
+  cmp w1, #'\r'
+  b.eq 31f
+  cmp w1, #'\n'
+  b.eq 31f
+  cmp x1, #31
+  b.ge 30b
+  strb w1, [x0, x1]
+  bl uart_putc
+  add x1, x1, #1
+  b 30b
+31:
+  mov w2, #0
+  strb w2, [x0, x1]
   ret
 
 .align 11
@@ -635,3 +718,5 @@ last_sys_ret:
   .quad 0
 trap_verbose_enabled:
   .quad 0
+shell_line_buf:
+  .space 32

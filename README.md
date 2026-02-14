@@ -86,13 +86,13 @@ On normal boot, Farmiga now enters a minimal serial shell prompt:
 farmiga-sh>
 ```
 
-Single-key demo commands:
-- `h`: help
-- `l`: ls
-- `c`: cat
-- `e`: echo
-- `m`: mount
-- `p`: ps
+Line-based demo commands:
+- `help`
+- `ls`
+- `cat`
+- `echo`
+- `mount`
+- `ps`
 
 Automated QEMU validation (recommended for every change):
 
