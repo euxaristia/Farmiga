@@ -453,6 +453,25 @@ fn proctable_seed(init_pid: i32, sh_pid: i32) -> ProcTable {
   return proctable_make(2, init_pid, sh_pid, 0, 0);
 }
 
+fn proctable_apply_fork(pt: ProcTable, child_pid: i32) -> ProcTable {
+  if (child_pid <= 0) {
+    return pt;
+  }
+  if (pt.count == 0) {
+    return proctable_make(1, child_pid, 0, 0, 0);
+  }
+  if (pt.count == 1) {
+    return proctable_make(2, pt.p0, child_pid, 0, 0);
+  }
+  if (pt.count == 2) {
+    return proctable_make(3, pt.p0, pt.p1, child_pid, 0);
+  }
+  if (pt.count == 3) {
+    return proctable_make(4, pt.p0, pt.p1, pt.p2, child_pid);
+  }
+  return pt;
+}
+
 fn shell_cmd_echo(len: i32) -> i32 {
   if (len < 0) {
     return 0 - 22;
@@ -694,6 +713,9 @@ fn main() -> i32 {
   let sh_task_unmounted: UserTask = init_spawn_from_fs(fs0, mt0, 2);
   let cpu1: CpuContext = cpu_enter_user(cpu0, sh_task);
   let pt0: ProcTable = proctable_seed(init.pid, sh_task.pid);
+  let pt1: ProcTable = proctable_apply_fork(pt0, 3);
+  let pt2: ProcTable = proctable_apply_fork(pt1, 4);
+  let pt3: ProcTable = proctable_apply_fork(pt2, 5);
   let ls_n: i32 = shell_cmd_ls(fs0);
   let cat_n: i32 = shell_cmd_cat(fs0, mt1, 702);
   let cat_bad: i32 = shell_cmd_cat(fs0, mt1, 404);
@@ -813,6 +835,9 @@ fn main() -> i32 {
   if (mnt_rc != 0) { return 50; }
   if (mounttable_count(mt2) != 1) { return 92; }
   if (mounttable_count(mt3) != 1) { return 93; }
+  if (pt1.count != 3) { return 94; }
+  if (pt2.count != 4) { return 95; }
+  if (pt3.count != 4) { return 96; }
   if (ps_n != 2) { return 51; }
   if (echo_n != 11) { return 52; }
   if (echo_bad != (0 - 22)) { return 53; }

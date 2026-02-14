@@ -67,6 +67,9 @@
   - `shell_cmd_mount_apply(fs, mt)` updates `MountTable` on successful mount command
   - idempotence guard keeps mount count stable on repeated mount application
   - smoke now asserts mount count progression (`0 -> 1`) and repeat stability (`1 -> 1`).
+- Added process-table fork apply-model in Coatl kernel layer:
+  - `proctable_apply_fork(pt, child_pid)` appends child pid until table capacity
+  - smoke now asserts process count growth saturation semantics (`2 -> 3 -> 4 -> 4`).
 
 ## 2026-02-12
 
