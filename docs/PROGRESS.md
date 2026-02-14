@@ -93,6 +93,9 @@
   - unknown commands route cleanly to `sh unknown` and return to prompt.
 - Added `exit` line command in aarch64 shell path:
   - prints `sh exit` and transitions to a halted wait state.
+- Fixed aarch64 serial shell input stability:
+  - added explicit UART control init (`UARTCR=0x301`) at boot to enforce normal RX/TX mode
+  - prevents unstable prompt behavior where command stream appeared pre-fed and user typing was not reliably visible.
 
 ## 2026-02-12
 

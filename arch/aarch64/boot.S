@@ -29,6 +29,7 @@
 .equ UART0_BASE, 0x09000000
 .equ UARTDR,    0x00
 .equ UARTFR,    0x18
+.equ UARTCR,    0x30
 .equ TXFF,      0x20
 .equ RXFE,      0x10
 
@@ -67,6 +68,8 @@
 _start:
   ldr x0, =__stack_top
   mov sp, x0
+
+  bl uart_init
 
   ldr x0, =vector_table_el1
   msr vbar_el1, x0
@@ -275,6 +278,12 @@ uart_putc:
   and w3, w3, #TXFF
   cbnz w3, 3b
   str w1, [x2, #UARTDR]
+  ret
+
+uart_init:
+  ldr x2, =UART0_BASE
+  mov w3, #0x301
+  str w3, [x2, #UARTCR]
   ret
 
 uart_getc_blocking:
