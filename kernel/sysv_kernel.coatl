@@ -479,12 +479,15 @@ fn shell_cmd_echo(len: i32) -> i32 {
   return len;
 }
 
-fn shell_cmd_ls(fs: FsImage) -> i32 {
+fn shell_cmd_ls(fs: FsImage, mt: MountTable) -> i32 {
   let n0: i32 = fs_lookup_ino(fs, 47);
   let n1: i32 = fs_lookup_ino(fs, 701);
   let n2: i32 = fs_lookup_ino(fs, 702);
   if (n0 <= 0 || n1 <= 0 || n2 <= 0) {
     return 0 - 2;
+  }
+  if (mounttable_count(mt) > 0) {
+    return 4;
   }
   return 3;
 }
@@ -716,7 +719,8 @@ fn main() -> i32 {
   let pt1: ProcTable = proctable_apply_fork(pt0, 3);
   let pt2: ProcTable = proctable_apply_fork(pt1, 4);
   let pt3: ProcTable = proctable_apply_fork(pt2, 5);
-  let ls_n: i32 = shell_cmd_ls(fs0);
+  let ls_n: i32 = shell_cmd_ls(fs0, mt1);
+  let ls_unmounted: i32 = shell_cmd_ls(fs0, mt0);
   let cat_n: i32 = shell_cmd_cat(fs0, mt1, 702);
   let cat_bad: i32 = shell_cmd_cat(fs0, mt1, 404);
   let cat_unmounted: i32 = shell_cmd_cat(fs0, mt0, 702);
@@ -828,7 +832,8 @@ fn main() -> i32 {
   if (sh_task.entry <= 0) { return 45; }
   if (sh_task.pid != 2) { return 46; }
   if (sh_task_unmounted.state < 0) { return 90; }
-  if (ls_n != 3) { return 47; }
+  if (ls_n != 4) { return 47; }
+  if (ls_unmounted != 3) { return 97; }
   if (cat_n != 96) { return 48; }
   if (cat_bad != (0 - 2)) { return 49; }
   if (cat_unmounted != (0 - 2)) { return 91; }

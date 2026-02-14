@@ -70,6 +70,9 @@
 - Added process-table fork apply-model in Coatl kernel layer:
   - `proctable_apply_fork(pt, child_pid)` appends child pid until table capacity
   - smoke now asserts process count growth saturation semantics (`2 -> 3 -> 4 -> 4`).
+- Extended Coatl shell `ls` model with mount awareness:
+  - `shell_cmd_ls(fs, mt)` now reports base entries plus mounted table visibility
+  - smoke now asserts mounted/unmounted listing semantics (`4` vs `3`).
 
 ## 2026-02-12
 
