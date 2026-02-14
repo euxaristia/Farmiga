@@ -24,6 +24,7 @@
 .globl last_trap_kind
 .globl last_sys_route
 .globl last_sys_ret
+.globl trap_verbose_enabled
 
 .equ UART0_BASE, 0x09000000
 .equ UARTDR,    0x00
@@ -74,6 +75,8 @@ _start:
   ldr x0, =el1_trap_count
   mov x1, #0
   str x1, [x0]
+  ldr x0, =trap_verbose_enabled
+  str x1, [x0]
 
   ldr x0, =clear_screen_banner
   bl uart_puts
@@ -82,6 +85,9 @@ _start:
   bl uart_puts
 
 .ifdef TRAP_TEST_SVC
+  ldr x3, =trap_verbose_enabled
+  mov x4, #1
+  str x4, [x3]
   mov x0, #TRAP_TEST_SVC_ARG0
   mov x1, #TRAP_TEST_SVC_ARG1
   mov x2, #TRAP_TEST_SVC_ARG2
@@ -90,8 +96,14 @@ _start:
 .endif
 
 .ifdef TRAP_TEST_BRK
+  ldr x3, =trap_verbose_enabled
+  mov x4, #1
+  str x4, [x3]
   brk #TRAP_TEST_BRK_IMM
 .endif
+
+  ldr x0, =clear_screen_banner
+  bl uart_puts
 
   ldr x0, =init_banner
   bl uart_puts
@@ -314,6 +326,10 @@ trap_common:
   add x1, x1, #1
   str x1, [x0]
 
+  ldr x15, =trap_verbose_enabled
+  ldr x15, [x15]
+  cbz x15, 50f
+
   cmp x10, #1
   b.eq 11f
   cmp x10, #2
@@ -369,7 +385,7 @@ trap_common:
   ldr x0, =route_none_banner
   bl uart_puts
   .endif
-  b 4f
+  b trap_store
 
 3:
   .if TRAP_VERBOSE
@@ -421,7 +437,7 @@ trap_common:
   ldr x0, =sys_getpid_banner
   bl uart_puts
   .endif
-  b 4f
+  b trap_store
 6:
   mov x11, #2
   mov x13, #0
@@ -429,7 +445,7 @@ trap_common:
   ldr x0, =sys_getppid_banner
   bl uart_puts
   .endif
-  b 4f
+  b trap_store
 7:
   mov x11, #3
   mov x13, #0
@@ -437,7 +453,7 @@ trap_common:
   ldr x0, =sys_exit_banner
   bl uart_puts
   .endif
-  b 4f
+  b trap_store
 8:
   mov x11, #4
   ldr x14, =last_x2
@@ -446,14 +462,14 @@ trap_common:
   ldr x0, =sys_write_banner
   bl uart_puts
   .endif
-  b 4f
+  b trap_store
 9:
   mov x11, #255
   .if TRAP_VERBOSE
   ldr x0, =sys_unknown_banner
   bl uart_puts
   .endif
-  b 4f
+  b trap_store
 10:
   .if TRAP_VERBOSE
   ldr x0, =trap_banner
@@ -461,7 +477,7 @@ trap_common:
   ldr x0, =route_none_banner
   bl uart_puts
   .endif
-4:
+trap_store:
   ldr x0, =last_sys_route
   str x11, [x0]
   ldr x0, =last_sys_ret
@@ -473,6 +489,46 @@ trap_common:
   bl uart_puts
   .endif
 41:
+  b 2f
+
+50:
+  cmp x10, #1
+  b.ne trap_store
+  ldr x1, =last_esr_el1
+  ldr x2, [x1]
+  ubfx x2, x2, #26, #6
+  cmp x2, #0x15
+  b.ne trap_store
+  ldr x1, =last_x8
+  ldr x8, [x1]
+  cmp x8, #20
+  b.eq 51f
+  cmp x8, #64
+  b.eq 52f
+  cmp x8, #1
+  b.eq 53f
+  cmp x8, #4
+  b.eq 54f
+  b 59f
+51:
+  mov x11, #1
+  mov x13, #1
+  b trap_store
+52:
+  mov x11, #2
+  mov x13, #0
+  b trap_store
+53:
+  mov x11, #3
+  mov x13, #0
+  b trap_store
+54:
+  mov x11, #4
+  ldr x14, =last_x2
+  ldr x13, [x14]
+  b trap_store
+59:
+  mov x11, #255
 2:
   wfe
   b 2b
@@ -574,4 +630,6 @@ last_sys_route:
   .quad 0
 trap_snapshot_end:
 last_sys_ret:
+  .quad 0
+trap_verbose_enabled:
   .quad 0
