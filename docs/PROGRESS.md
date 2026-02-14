@@ -53,6 +53,9 @@
   - `make run-x86_64-loader`
   - `make test-x86_64-qemu-smoke` (banner assertion on serial log)
   - these targets are currently optional and not part of `validate` while x86_64 boot protocol bring-up is still being stabilized.
+- Added minimal mount-table model scaffolding in Coatl kernel layer:
+  - `MountTable`, `mounttable_new`, `mounttable_mount_root`, `mounttable_count`
+  - host smoke now asserts root mount registration/count semantics (`0 -> 1`).
 
 ## 2026-02-12
 

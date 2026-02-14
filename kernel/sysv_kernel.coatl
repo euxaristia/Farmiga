@@ -36,6 +36,12 @@ struct Mount {
   fs_kind: i32
 }
 
+struct MountTable {
+  count: i32,
+  root_mnt: i32,
+  proc_mnt: i32
+}
+
 struct UserTask {
   pid: i32,
   entry: i32,
@@ -276,6 +282,30 @@ fn mount_make_root() -> Mount {
     root_ino: 1,
     fs_kind: 1
   };
+}
+
+fn mounttable_new() -> MountTable {
+  return MountTable {
+    count: 0,
+    root_mnt: 0,
+    proc_mnt: 0
+  };
+}
+
+fn mounttable_mount_root(mt: MountTable, fs: FsImage) -> MountTable {
+  let ok: i32 = fs_lookup_ino(fs, 703);
+  if (ok < 0) {
+    return mt;
+  }
+  return MountTable {
+    count: 1,
+    root_mnt: 1,
+    proc_mnt: mt.proc_mnt
+  };
+}
+
+fn mounttable_count(mt: MountTable) -> i32 {
+  return mt.count;
 }
 
 fn init_task_make(pid: i32) -> UserTask {
@@ -610,6 +640,8 @@ fn main() -> i32 {
   let init_task0: UserTask = init_task_make(init.pid);
   let init_task1: UserTask = init_task_step(init_task0);
   let fs0: FsImage = fsimage_make_base();
+  let mt0: MountTable = mounttable_new();
+  let mt1: MountTable = mounttable_mount_root(mt0, fs0);
   let sh_task: UserTask = init_spawn_from_fs(fs0, 2);
   let pt0: ProcTable = proctable_seed(init.pid, sh_task.pid);
   let ls_n: i32 = shell_cmd_ls(fs0);
@@ -680,6 +712,8 @@ fn main() -> i32 {
   if (vfs_lookup_root(47) != 1) { return 32; }
   if (vfs_lookup_root(999) != (0 - 2)) { return 33; }
   if (m0.root_ino != root.ino) { return 34; }
+  if (mounttable_count(mt0) != 0) { return 85; }
+  if (mounttable_count(mt1) != 1) { return 86; }
   if (init_task0.pid != init.pid) { return 35; }
   if (init_task1.state < 0) { return 36; }
   if (trap_is_syscall(ev_sys) != 1) { return 37; }
