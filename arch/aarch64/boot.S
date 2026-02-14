@@ -136,6 +136,26 @@ _start:
   bl shell_prompt
   b 1b
 
+20:
+  cmp x1, #4
+  b.ne 21f
+  ldrb w2, [x0, #0]
+  cmp w2, #'e'
+  b.ne 21f
+  ldrb w2, [x0, #1]
+  cmp w2, #'x'
+  b.ne 21f
+  ldrb w2, [x0, #2]
+  cmp w2, #'i'
+  b.ne 21f
+  ldrb w2, [x0, #3]
+  cmp w2, #'t'
+  b.ne 21f
+  bl shell_cmd_begin
+  ldr x0, =shell_exit_banner
+  bl uart_puts
+  b 99f
+
 21:  // ls
   cmp x1, #2
   b.ne 22f
@@ -236,6 +256,9 @@ _start:
   bl uart_puts
   bl shell_prompt
   b 1b
+99:
+  wfe
+  b 99b
 
 uart_puts:
   ldrb w1, [x0], #1
@@ -664,7 +687,7 @@ shell_prompt_banner:
 shell_newline_banner:
   .asciz "\r\n"
 shell_help_banner:
-  .asciz "FarmigaKernel: sh help [h,l,c,e,m,p]\r\n"
+  .asciz "FarmigaKernel: sh help [help,ls,cat,echo,mount,ps,exit]\r\n"
 shell_ls_banner:
   .asciz "FarmigaKernel: sh ls /\r\n"
 shell_cat_banner:
@@ -677,6 +700,8 @@ shell_ps_banner:
   .asciz "FarmigaKernel: sh ps\r\n"
 shell_unknown_banner:
   .asciz "FarmigaKernel: sh unknown\r\n"
+shell_exit_banner:
+  .asciz "FarmigaKernel: sh exit\r\n"
 
 .section .bss
 .align 3

@@ -93,6 +93,7 @@ Line-based demo commands:
 - `echo`
 - `mount`
 - `ps`
+- `exit`
 
 Automated QEMU validation (recommended for every change):
 

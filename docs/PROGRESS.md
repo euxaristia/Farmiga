@@ -89,8 +89,10 @@
 - Added a second serial clear-screen just before `init` handoff so interactive shell sessions start from a clean visible prompt even when early startup noise occurred in prior scrollback.
 - Removed trap/debug banner strings from default non-test aarch64 builds; trap observability strings are now compiled only in trap-test variants.
 - Upgraded aarch64 shell input from single-key triggers to line-based command parsing:
-  - input buffer + newline submission path (`help`, `ls`, `cat`, `echo`, `mount`, `ps`)
+  - input buffer + newline submission path (`help`, `ls`, `cat`, `echo`, `mount`, `ps`, `exit`)
   - unknown commands route cleanly to `sh unknown` and return to prompt.
+- Added `exit` line command in aarch64 shell path:
+  - prints `sh exit` and transitions to a halted wait state.
 
 ## 2026-02-12
 
