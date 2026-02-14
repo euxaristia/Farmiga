@@ -29,6 +29,7 @@
 .equ UARTDR,    0x00
 .equ UARTFR,    0x18
 .equ TXFF,      0x20
+.equ RXFE,      0x10
 
 .ifndef TRAP_TEST_SVC_NO
   .equ TRAP_TEST_SVC_NO, 20
@@ -77,8 +78,66 @@ _start:
   brk #TRAP_TEST_BRK_IMM
 .endif
 
+  ldr x0, =init_banner
+  bl uart_puts
+  ldr x0, =shell_help_banner
+  bl uart_puts
+  bl shell_prompt
+
 1:
-  wfe
+  bl uart_getc_blocking
+  cmp w1, #'h'
+  b.eq 20f
+  cmp w1, #'l'
+  b.eq 21f
+  cmp w1, #'c'
+  b.eq 22f
+  cmp w1, #'e'
+  b.eq 23f
+  cmp w1, #'m'
+  b.eq 24f
+  cmp w1, #'p'
+  b.eq 25f
+  cmp w1, #'\r'
+  b.eq 26f
+  cmp w1, #'\n'
+  b.eq 26f
+  ldr x0, =shell_unknown_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+20:
+  ldr x0, =shell_help_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+21:
+  ldr x0, =shell_ls_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+22:
+  ldr x0, =shell_cat_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+23:
+  ldr x0, =shell_echo_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+24:
+  ldr x0, =shell_mount_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+25:
+  ldr x0, =shell_ps_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+26:
+  bl shell_prompt
   b 1b
 
 uart_puts:
@@ -96,6 +155,21 @@ uart_putc:
   and w3, w3, #TXFF
   cbnz w3, 3b
   str w1, [x2, #UARTDR]
+  ret
+
+uart_getc_blocking:
+  ldr x2, =UART0_BASE
+4:
+  ldr w3, [x2, #UARTFR]
+  and w3, w3, #RXFE
+  cbnz w3, 4b
+  ldr w1, [x2, #UARTDR]
+  and w1, w1, #0xff
+  ret
+
+shell_prompt:
+  ldr x0, =shell_prompt_banner
+  bl uart_puts
   ret
 
 .align 11
@@ -379,6 +453,24 @@ sys_unknown_banner:
   .asciz "FarmigaKernel: syscall unknown\r\n"
 route_none_banner:
   .asciz "FarmigaKernel: route none\r\n"
+init_banner:
+  .asciz "FarmigaKernel: init started\r\n"
+shell_prompt_banner:
+  .asciz "farmiga-sh> "
+shell_help_banner:
+  .asciz "FarmigaKernel: sh help [h,l,c,e,m,p]\r\n"
+shell_ls_banner:
+  .asciz "FarmigaKernel: sh ls /\r\n"
+shell_cat_banner:
+  .asciz "FarmigaKernel: sh cat /bin/sh\r\n"
+shell_echo_banner:
+  .asciz "FarmigaKernel: sh echo ok\r\n"
+shell_mount_banner:
+  .asciz "FarmigaKernel: sh mount rootfs /\r\n"
+shell_ps_banner:
+  .asciz "FarmigaKernel: sh ps\r\n"
+shell_unknown_banner:
+  .asciz "FarmigaKernel: sh unknown\r\n"
 
 .section .bss
 .align 3

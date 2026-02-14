@@ -76,6 +76,10 @@
 - Extended Coatl shell `ps` model with mount-context visibility:
   - `shell_cmd_ps_with_mount(pt, mt)` returns baseline process count plus mounted context marker
   - smoke now asserts mounted/unmounted semantics (`3` vs `2`).
+- Added deterministic aarch64 serial `init`/`sh` loop in machine entry path:
+  - normal boot now prints `init` banner and `farmiga-sh>` prompt
+  - single-key command stubs: `h/l/c/e/m/p` -> help/ls/cat/echo/mount/ps banners
+  - trap test flows remain intact (`TRAP_TEST_SVC` / `TRAP_TEST_BRK`) for existing QEMU trap smoke targets.
 
 ## 2026-02-12
 

@@ -80,6 +80,20 @@ You should see:
 FarmigaKernel: aarch64 stage0
 ```
 
+On normal boot, Farmiga now enters a minimal serial shell prompt:
+
+```text
+farmiga-sh>
+```
+
+Single-key demo commands:
+- `h`: help
+- `l`: ls
+- `c`: cat
+- `e`: echo
+- `m`: mount
+- `p`: ps
+
 Automated QEMU validation (recommended for every change):
 
 ```bash
