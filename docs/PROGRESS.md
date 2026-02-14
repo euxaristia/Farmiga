@@ -63,6 +63,10 @@
   - `fs_resolve_path(fs, mt, path_hash)` gates non-root lookups on mount availability
   - `init_spawn_from_fs` and `shell_cmd_cat` now route through mount-aware resolution
   - smoke now asserts mounted/unmounted behavior for shell spawn and `cat`.
+- Added stateful mount command apply-model in Coatl kernel layer:
+  - `shell_cmd_mount_apply(fs, mt)` updates `MountTable` on successful mount command
+  - idempotence guard keeps mount count stable on repeated mount application
+  - smoke now asserts mount count progression (`0 -> 1`) and repeat stability (`1 -> 1`).
 
 ## 2026-02-12
 

@@ -486,6 +486,17 @@ fn shell_cmd_mount(fs: FsImage) -> i32 {
   return 0;
 }
 
+fn shell_cmd_mount_apply(fs: FsImage, mt: MountTable) -> MountTable {
+  let rc: i32 = shell_cmd_mount(fs);
+  if (rc < 0) {
+    return mt;
+  }
+  if (mounttable_count(mt) > 0) {
+    return mt;
+  }
+  return mounttable_mount_root(mt, fs);
+}
+
 fn shell_cmd_ps(pt: ProcTable) -> i32 {
   if (pt.count <= 0) {
     return 0 - 3;
@@ -688,6 +699,8 @@ fn main() -> i32 {
   let cat_bad: i32 = shell_cmd_cat(fs0, mt1, 404);
   let cat_unmounted: i32 = shell_cmd_cat(fs0, mt0, 702);
   let mnt_rc: i32 = shell_cmd_mount(fs0);
+  let mt2: MountTable = shell_cmd_mount_apply(fs0, mt0);
+  let mt3: MountTable = shell_cmd_mount_apply(fs0, mt2);
   let ps_n: i32 = shell_cmd_ps(pt0);
   let echo_n: i32 = shell_cmd_echo(11);
   let echo_bad: i32 = shell_cmd_echo(0 - 1);
@@ -798,6 +811,8 @@ fn main() -> i32 {
   if (cat_bad != (0 - 2)) { return 49; }
   if (cat_unmounted != (0 - 2)) { return 91; }
   if (mnt_rc != 0) { return 50; }
+  if (mounttable_count(mt2) != 1) { return 92; }
+  if (mounttable_count(mt3) != 1) { return 93; }
   if (ps_n != 2) { return 51; }
   if (echo_n != 11) { return 52; }
   if (echo_bad != (0 - 22)) { return 53; }
