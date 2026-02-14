@@ -50,6 +50,12 @@ Build experimental x86_64 ELF + raw image (secondary target scaffold):
 make x86_64
 ```
 
+Run x86_64 scaffold build contract smoke:
+
+```bash
+make test-x86_64-build
+```
+
 Run on QEMU:
 
 ```bash
