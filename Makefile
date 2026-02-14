@@ -36,20 +36,23 @@ A64_BOOT_OBJ := $(BUILD_DIR)/boot_aarch64.o
 COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
 COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
-.PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
+.PHONY: all validate toolchain-aarch64 toolchain-preflight aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
 .PHONY: gen-coatl-trap-abi-constants test-coatl-generated-trap-abi-sync
 .PHONY: coatl-userland-smoke
 
 all: aarch64
-validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity test-coatl-generated-trap-abi-sync
+validate: toolchain-preflight coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity test-coatl-generated-trap-abi-sync
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
 	@command -v $(LD) >/dev/null 2>&1 || { echo "missing: $(LD)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
 	@command -v $(OBJCOPY) >/dev/null 2>&1 || { echo "missing: $(OBJCOPY)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
 	@command -v $(NM) >/dev/null 2>&1 || { echo "missing: $(NM)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
+
+toolchain-preflight:
+	@CROSS=$(CROSS) COATL=$(COATL) QEMU=$(QEMU) TIMEOUT=$(TIMEOUT) bash scripts/check_toolchain.sh
 
 aarch64: toolchain-aarch64 $(A64_ELF) $(A64_IMG)
 

@@ -184,6 +184,12 @@ Run the full validation suite (includes QEMU boot test):
 make validate
 ```
 
+Run standalone environment/toolchain preflight:
+
+```bash
+make toolchain-preflight
+```
+
 ## Notes
 
 - Coatl AArch64 codegen is still evolving. This repo keeps the machine-entry path in assembly while growing portable kernel logic in Coatl.

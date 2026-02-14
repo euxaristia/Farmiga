@@ -37,6 +37,10 @@
 - Hardened runtime trap verification in `Makefile`:
   - `test-aarch64-trap-runtime` now depends on `test-aarch64-svc-args` and `test-aarch64-svc-ret`
   - runtime check now asserts syscall argument markers (`x0/x1/x2`) and return marker (`ret x0=16`) from captured QEMU logs.
+- Hardened build preflight reliability:
+  - updated `scripts/check_toolchain.sh` to auto-detect `CROSS` prefix (`aarch64-none-elf-` / `aarch64-linux-gnu-`)
+  - preflight now checks `nm`, `qemu-system-aarch64`, and `timeout` in addition to assembler/linker/objcopy/Coatl
+  - added `make toolchain-preflight` target and made `make validate` run it first.
 
 ## 2026-02-12
 
