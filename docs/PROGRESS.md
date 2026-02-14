@@ -41,6 +41,10 @@
   - updated `scripts/check_toolchain.sh` to auto-detect `CROSS` prefix (`aarch64-none-elf-` / `aarch64-linux-gnu-`)
   - preflight now checks `nm`, `qemu-system-aarch64`, and `timeout` in addition to assembler/linker/objcopy/Coatl
   - added `make toolchain-preflight` target and made `make validate` run it first.
+- Added initial x86_64 architecture scaffold (secondary target lane):
+  - `arch/x86_64/boot.S` stage-0 entry with serial banner path
+  - `arch/x86_64/linker.ld` bare-metal linker layout
+  - `make x86_64` build target with `toolchain-x86_64` auto-detected prefix support.
 
 ## 2026-02-12
 

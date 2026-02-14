@@ -10,6 +10,19 @@ AS := $(CROSS)as
 LD := $(CROSS)ld
 OBJCOPY := $(CROSS)objcopy
 NM := $(CROSS)nm
+X86_CROSS ?= $(shell \
+	if command -v x86_64-elf-as >/dev/null 2>&1; then \
+		printf '%s' x86_64-elf-; \
+	elif command -v x86_64-linux-gnu-as >/dev/null 2>&1; then \
+		printf '%s' x86_64-linux-gnu-; \
+	elif command -v as >/dev/null 2>&1 && command -v ld >/dev/null 2>&1 && command -v objcopy >/dev/null 2>&1; then \
+		printf '%s' ''; \
+	else \
+		printf '%s' x86_64-linux-gnu-; \
+	fi)
+X86_AS := $(X86_CROSS)as
+X86_LD := $(X86_CROSS)ld
+X86_OBJCOPY := $(X86_CROSS)objcopy
 QEMU ?= qemu-system-aarch64
 TIMEOUT ?= timeout
 QEMU_TIMEOUT_SECS ?= 5
@@ -33,10 +46,13 @@ BUILD_DIR := build
 A64_ELF := $(BUILD_DIR)/farmiga-aarch64.elf
 A64_IMG := $(BUILD_DIR)/farmiga-aarch64.img
 A64_BOOT_OBJ := $(BUILD_DIR)/boot_aarch64.o
+X86_ELF := $(BUILD_DIR)/farmiga-x86_64.elf
+X86_IMG := $(BUILD_DIR)/farmiga-x86_64.bin
+X86_BOOT_OBJ := $(BUILD_DIR)/boot_x86_64.o
 COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
 COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
-.PHONY: all validate toolchain-aarch64 toolchain-preflight aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
+.PHONY: all validate toolchain-aarch64 toolchain-x86_64 toolchain-preflight aarch64 x86_64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
 .PHONY: gen-coatl-trap-abi-constants test-coatl-generated-trap-abi-sync
@@ -51,10 +67,16 @@ toolchain-aarch64:
 	@command -v $(OBJCOPY) >/dev/null 2>&1 || { echo "missing: $(OBJCOPY)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
 	@command -v $(NM) >/dev/null 2>&1 || { echo "missing: $(NM)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
 
+toolchain-x86_64:
+	@command -v $(X86_AS) >/dev/null 2>&1 || { echo "missing: $(X86_AS)"; echo "install x86_64 cross binutils or set X86_CROSS=<prefix> (example: X86_CROSS=x86_64-linux-gnu-)"; exit 1; }
+	@command -v $(X86_LD) >/dev/null 2>&1 || { echo "missing: $(X86_LD)"; echo "install x86_64 cross binutils or set X86_CROSS=<prefix> (example: X86_CROSS=x86_64-linux-gnu-)"; exit 1; }
+	@command -v $(X86_OBJCOPY) >/dev/null 2>&1 || { echo "missing: $(X86_OBJCOPY)"; echo "install x86_64 cross binutils or set X86_CROSS=<prefix> (example: X86_CROSS=x86_64-linux-gnu-)"; exit 1; }
+
 toolchain-preflight:
 	@CROSS=$(CROSS) COATL=$(COATL) QEMU=$(QEMU) TIMEOUT=$(TIMEOUT) bash scripts/check_toolchain.sh
 
 aarch64: toolchain-aarch64 $(A64_ELF) $(A64_IMG)
+x86_64: toolchain-x86_64 $(X86_ELF) $(X86_IMG)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -67,6 +89,15 @@ $(A64_ELF): $(A64_BOOT_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
 
 $(A64_IMG): $(A64_ELF) | $(BUILD_DIR)
 	$(OBJCOPY) -O binary $< $@
+
+$(X86_BOOT_OBJ): arch/x86_64/boot.S | $(BUILD_DIR)
+	$(X86_AS) -o $@ $<
+
+$(X86_ELF): $(X86_BOOT_OBJ) arch/x86_64/linker.ld | $(BUILD_DIR)
+	$(X86_LD) -T arch/x86_64/linker.ld -o $@ $(X86_BOOT_OBJ)
+
+$(X86_IMG): $(X86_ELF) | $(BUILD_DIR)
+	$(X86_OBJCOPY) -O binary $< $@
 
 run-aarch64: toolchain-aarch64 $(A64_ELF)
 	$(QEMU) \

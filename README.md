@@ -44,6 +44,12 @@ Build AArch64 ELF + raw image:
 make aarch64
 ```
 
+Build experimental x86_64 ELF + raw image (secondary target scaffold):
+
+```bash
+make x86_64
+```
+
 Run on QEMU:
 
 ```bash
