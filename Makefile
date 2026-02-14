@@ -336,10 +336,14 @@ test-aarch64-brk: toolchain-aarch64 | $(BUILD_DIR)
 test-aarch64-trap-abi: toolchain-aarch64 $(A64_ELF)
 	@NM=$(NM) bash scripts/check_trap_abi_contract.sh $(A64_ELF) kernel/sysv_kernel.coatl
 
-test-aarch64-trap-runtime: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-brk
+test-aarch64-trap-runtime: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-brk
 	@set -eu; \
 	grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc.log" || { echo "trap runtime check failed: missing sync kind marker in svc log"; cat "$(BUILD_DIR)/qemu-aarch64-svc.log"; exit 1; }; \
 	grep -Fq "$(EXPECTED_SYSCALL_GETPID_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc.log" || { echo "trap runtime check failed: missing getpid route marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_SYSCALL_ARG_X0_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-args.log" || { echo "trap runtime check failed: missing x0 arg marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-args.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_SYSCALL_ARG_X1_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-args.log" || { echo "trap runtime check failed: missing x1 arg marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-args.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_SYSCALL_ARG_X2_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-args.log" || { echo "trap runtime check failed: missing x2 arg marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-args.log"; exit 1; }; \
+	grep -Fq "$(EXPECTED_SYSCALL_RET_X0_16_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-ret.log" || { echo "trap runtime check failed: missing syscall return marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-ret.log"; exit 1; }; \
 	grep -Fq "$(EXPECTED_SYSCALL_UNKNOWN_BANNER)" "$(BUILD_DIR)/qemu-aarch64-svc-unknown.log" || { echo "trap runtime check failed: missing unknown route marker"; cat "$(BUILD_DIR)/qemu-aarch64-svc-unknown.log"; exit 1; }; \
 	grep -Fq "$(EXPECTED_ROUTE_NONE_BANNER)" "$(BUILD_DIR)/qemu-aarch64-brk.log" || { echo "trap runtime check failed: missing route-none marker in brk log"; cat "$(BUILD_DIR)/qemu-aarch64-brk.log"; exit 1; }; \
 	echo "QEMU trap runtime value check passed"

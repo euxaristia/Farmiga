@@ -34,6 +34,9 @@
   - added `trap_snapshot_to_trapframe`
   - added `sys_dispatch_snapshot_ret`
   - host smoke now validates snapshot-driven dispatch for write (`ret=16`) and unknown syscall (`-ENOSYS`-like path).
+- Hardened runtime trap verification in `Makefile`:
+  - `test-aarch64-trap-runtime` now depends on `test-aarch64-svc-args` and `test-aarch64-svc-ret`
+  - runtime check now asserts syscall argument markers (`x0/x1/x2`) and return marker (`ret x0=16`) from captured QEMU logs.
 
 ## 2026-02-12
 
