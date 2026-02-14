@@ -73,6 +73,9 @@
 - Extended Coatl shell `ls` model with mount awareness:
   - `shell_cmd_ls(fs, mt)` now reports base entries plus mounted table visibility
   - smoke now asserts mounted/unmounted listing semantics (`4` vs `3`).
+- Extended Coatl shell `ps` model with mount-context visibility:
+  - `shell_cmd_ps_with_mount(pt, mt)` returns baseline process count plus mounted context marker
+  - smoke now asserts mounted/unmounted semantics (`3` vs `2`).
 
 ## 2026-02-12
 

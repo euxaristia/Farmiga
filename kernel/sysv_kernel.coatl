@@ -526,6 +526,17 @@ fn shell_cmd_ps(pt: ProcTable) -> i32 {
   return pt.count;
 }
 
+fn shell_cmd_ps_with_mount(pt: ProcTable, mt: MountTable) -> i32 {
+  let base: i32 = shell_cmd_ps(pt);
+  if (base < 0) {
+    return base;
+  }
+  if (mounttable_count(mt) > 0) {
+    return base + 1;
+  }
+  return base;
+}
+
 fn trap_event_make(kind: i32, from_el: i32, esr: i32, elr: i32, spsr: i32, x8_syscall: i32) -> TrapEvent {
   return TrapEvent {
     kind: kind,
@@ -728,6 +739,8 @@ fn main() -> i32 {
   let mt2: MountTable = shell_cmd_mount_apply(fs0, mt0);
   let mt3: MountTable = shell_cmd_mount_apply(fs0, mt2);
   let ps_n: i32 = shell_cmd_ps(pt0);
+  let ps_unmounted: i32 = shell_cmd_ps_with_mount(pt0, mt0);
+  let ps_mounted: i32 = shell_cmd_ps_with_mount(pt0, mt1);
   let echo_n: i32 = shell_cmd_echo(11);
   let echo_bad: i32 = shell_cmd_echo(0 - 1);
   let ev_sys: TrapEvent = trap_event_make(1, 0, 0, 0, 0, 20);
@@ -844,6 +857,8 @@ fn main() -> i32 {
   if (pt2.count != 4) { return 95; }
   if (pt3.count != 4) { return 96; }
   if (ps_n != 2) { return 51; }
+  if (ps_unmounted != 2) { return 98; }
+  if (ps_mounted != 3) { return 99; }
   if (echo_n != 11) { return 52; }
   if (echo_bad != (0 - 22)) { return 53; }
   if (sh_task.state < 0) { return 54; }
