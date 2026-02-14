@@ -80,6 +80,9 @@
   - normal boot now prints `init` banner and `farmiga-sh>` prompt
   - single-key command stubs: `h/l/c/e/m/p` -> help/ls/cat/echo/mount/ps banners
   - trap test flows remain intact (`TRAP_TEST_SVC` / `TRAP_TEST_BRK`) for existing QEMU trap smoke targets.
+- Improved aarch64 serial shell UX:
+  - boot now emits ANSI clear-screen sequence before banners
+  - shell command responses now start on a fresh line for prompt readability.
 
 ## 2026-02-12
 

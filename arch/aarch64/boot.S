@@ -63,6 +63,9 @@ _start:
   mov x1, #0
   str x1, [x0]
 
+  ldr x0, =clear_screen_banner
+  bl uart_puts
+
   ldr x0, =boot_banner
   bl uart_puts
 
@@ -102,36 +105,43 @@ _start:
   b.eq 26f
   cmp w1, #'\n'
   b.eq 26f
+  bl shell_cmd_begin
   ldr x0, =shell_unknown_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 20:
+  bl shell_cmd_begin
   ldr x0, =shell_help_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 21:
+  bl shell_cmd_begin
   ldr x0, =shell_ls_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 22:
+  bl shell_cmd_begin
   ldr x0, =shell_cat_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 23:
+  bl shell_cmd_begin
   ldr x0, =shell_echo_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 24:
+  bl shell_cmd_begin
   ldr x0, =shell_mount_banner
   bl uart_puts
   bl shell_prompt
   b 1b
 25:
+  bl shell_cmd_begin
   ldr x0, =shell_ps_banner
   bl uart_puts
   bl shell_prompt
@@ -169,6 +179,11 @@ uart_getc_blocking:
 
 shell_prompt:
   ldr x0, =shell_prompt_banner
+  bl uart_puts
+  ret
+
+shell_cmd_begin:
+  ldr x0, =shell_newline_banner
   bl uart_puts
   ret
 
@@ -417,6 +432,8 @@ trap_common:
   b 2b
 
 .section .rodata
+clear_screen_banner:
+  .asciz "\033[2J\033[H"
 boot_banner:
   .asciz "FarmigaKernel: aarch64 stage0\r\n"
 trap_banner:
@@ -457,6 +474,8 @@ init_banner:
   .asciz "FarmigaKernel: init started\r\n"
 shell_prompt_banner:
   .asciz "farmiga-sh> "
+shell_newline_banner:
+  .asciz "\r\n"
 shell_help_banner:
   .asciz "FarmigaKernel: sh help [h,l,c,e,m,p]\r\n"
 shell_ls_banner:
