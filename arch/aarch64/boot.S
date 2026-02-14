@@ -538,6 +538,7 @@ clear_screen_banner:
   .asciz "\033[2J\033[H"
 boot_banner:
   .asciz "FarmigaKernel: aarch64 stage0\r\n"
+.if TRAP_VERBOSE
 trap_banner:
   .asciz "FarmigaKernel: el1 trap entered\r\n"
 trap_kind_sync_banner:
@@ -572,6 +573,7 @@ sys_unknown_banner:
   .asciz "FarmigaKernel: syscall unknown\r\n"
 route_none_banner:
   .asciz "FarmigaKernel: route none\r\n"
+.endif
 init_banner:
   .asciz "FarmigaKernel: init started\r\n"
 shell_prompt_banner:
