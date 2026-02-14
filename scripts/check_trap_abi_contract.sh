@@ -65,14 +65,21 @@ for s in \
   trap_snapshot_off_elr \
   trap_snapshot_off_spsr \
   trap_snapshot_off_x8 \
+  trap_snapshot_off_x0 \
+  trap_snapshot_off_x1 \
+  trap_snapshot_off_x2 \
   trap_snapshot_off_route \
   el1_trap_count \
   last_trap_kind \
   last_esr_el1 \
   last_elr_el1 \
   last_spsr_el1 \
+  last_x0 \
+  last_x1 \
+  last_x2 \
   last_x8 \
-  last_sys_route
+  last_sys_route \
+  last_sys_ret
 do
   sym_hex "$s" >/dev/null
 done
@@ -84,6 +91,9 @@ check_eq_hex trap_snapshot_off_esr "$(coatl_const_dec trap_snapshot_abi_off_esr)
 check_eq_hex trap_snapshot_off_elr "$(coatl_const_dec trap_snapshot_abi_off_elr)"
 check_eq_hex trap_snapshot_off_spsr "$(coatl_const_dec trap_snapshot_abi_off_spsr)"
 check_eq_hex trap_snapshot_off_x8 "$(coatl_const_dec trap_snapshot_abi_off_x8)"
+check_eq_hex trap_snapshot_off_x0 "$(coatl_const_dec trap_snapshot_abi_off_x0)"
+check_eq_hex trap_snapshot_off_x1 "$(coatl_const_dec trap_snapshot_abi_off_x1)"
+check_eq_hex trap_snapshot_off_x2 "$(coatl_const_dec trap_snapshot_abi_off_x2)"
 check_eq_hex trap_snapshot_off_route "$(coatl_const_dec trap_snapshot_abi_off_route)"
 
 base_dec=$((16#$(sym_hex trap_snapshot_base)))

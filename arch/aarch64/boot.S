@@ -9,14 +9,21 @@
 .globl trap_snapshot_off_elr
 .globl trap_snapshot_off_spsr
 .globl trap_snapshot_off_x8
+.globl trap_snapshot_off_x0
+.globl trap_snapshot_off_x1
+.globl trap_snapshot_off_x2
 .globl trap_snapshot_off_route
 .globl el1_trap_count
 .globl last_esr_el1
 .globl last_elr_el1
 .globl last_spsr_el1
+.globl last_x0
+.globl last_x1
+.globl last_x2
 .globl last_x8
 .globl last_trap_kind
 .globl last_sys_route
+.globl last_sys_ret
 
 .equ UART0_BASE, 0x09000000
 .equ UARTDR,    0x00
@@ -25,6 +32,18 @@
 
 .ifndef TRAP_TEST_SVC_NO
   .equ TRAP_TEST_SVC_NO, 20
+.endif
+
+.ifndef TRAP_TEST_SVC_ARG0
+  .equ TRAP_TEST_SVC_ARG0, 0
+.endif
+
+.ifndef TRAP_TEST_SVC_ARG1
+  .equ TRAP_TEST_SVC_ARG1, 0
+.endif
+
+.ifndef TRAP_TEST_SVC_ARG2
+  .equ TRAP_TEST_SVC_ARG2, 0
 .endif
 
 .ifndef TRAP_TEST_BRK_IMM
@@ -47,6 +66,9 @@ _start:
   bl uart_puts
 
 .ifdef TRAP_TEST_SVC
+  mov x0, #TRAP_TEST_SVC_ARG0
+  mov x1, #TRAP_TEST_SVC_ARG1
+  mov x2, #TRAP_TEST_SVC_ARG2
   mov x8, #TRAP_TEST_SVC_NO
   svc #0
 .endif
@@ -161,9 +183,18 @@ exc_lower_a32_serr:
   b trap_common
 
 trap_common:
-  ldr x0, =last_trap_kind
-  str x10, [x0]
+  ldr x12, =last_x0
+  str x0, [x12]
+  ldr x12, =last_x1
+  str x1, [x12]
+  ldr x12, =last_x2
+  str x2, [x12]
+  ldr x12, =last_x8
+  str x8, [x12]
+  ldr x12, =last_trap_kind
+  str x10, [x12]
   mov x11, #0
+  mov x13, #0
 
   mrs x2, esr_el1
   ldr x0, =last_esr_el1
@@ -176,9 +207,6 @@ trap_common:
   mrs x2, spsr_el1
   ldr x0, =last_spsr_el1
   str x2, [x0]
-
-  ldr x0, =last_x8
-  str x8, [x0]
 
   ldr x0, =el1_trap_count
   ldr x1, [x0]
@@ -233,6 +261,29 @@ trap_common:
 3:
   ldr x0, =syscall_banner
   bl uart_puts
+  ldr x0, =last_x0
+  ldr x1, [x0]
+  cmp x1, #1
+  b.ne 31f
+  ldr x0, =sys_arg_x0_fd1_banner
+  bl uart_puts
+31:
+  ldr x0, =last_x1
+  ldr x1, [x0]
+  cmp x1, #4096
+  b.ne 32f
+  ldr x0, =sys_arg_x1_ptr4096_banner
+  bl uart_puts
+32:
+  ldr x0, =last_x2
+  ldr x1, [x0]
+  cmp x1, #16
+  b.ne 33f
+  ldr x0, =sys_arg_x2_len16_banner
+  bl uart_puts
+33:
+  ldr x1, =last_x8
+  ldr x8, [x1]
   cmp x8, #20
   b.eq 5f
   cmp x8, #64
@@ -244,21 +295,26 @@ trap_common:
   b 9f
 5:
   mov x11, #1
+  mov x13, #1
   ldr x0, =sys_getpid_banner
   bl uart_puts
   b 4f
 6:
   mov x11, #2
+  mov x13, #0
   ldr x0, =sys_getppid_banner
   bl uart_puts
   b 4f
 7:
   mov x11, #3
+  mov x13, #0
   ldr x0, =sys_exit_banner
   bl uart_puts
   b 4f
 8:
   mov x11, #4
+  ldr x14, =last_x2
+  ldr x13, [x14]
   ldr x0, =sys_write_banner
   bl uart_puts
   b 4f
@@ -275,6 +331,13 @@ trap_common:
 4:
   ldr x0, =last_sys_route
   str x11, [x0]
+  ldr x0, =last_sys_ret
+  str x13, [x0]
+  cmp x13, #16
+  b.ne 41f
+  ldr x0, =sys_ret_16_banner
+  bl uart_puts
+41:
 2:
   wfe
   b 2b
@@ -304,6 +367,14 @@ sys_exit_banner:
   .asciz "FarmigaKernel: syscall exit(1)\r\n"
 sys_write_banner:
   .asciz "FarmigaKernel: syscall write(4)\r\n"
+sys_arg_x0_fd1_banner:
+  .asciz "FarmigaKernel: syscall arg x0=1\r\n"
+sys_arg_x1_ptr4096_banner:
+  .asciz "FarmigaKernel: syscall arg x1=4096\r\n"
+sys_arg_x2_len16_banner:
+  .asciz "FarmigaKernel: syscall arg x2=16\r\n"
+sys_ret_16_banner:
+  .asciz "FarmigaKernel: syscall ret x0=16\r\n"
 sys_unknown_banner:
   .asciz "FarmigaKernel: syscall unknown\r\n"
 route_none_banner:
@@ -318,8 +389,11 @@ trap_snapshot_base:
 .equ trap_snapshot_off_elr, 24
 .equ trap_snapshot_off_spsr, 32
 .equ trap_snapshot_off_x8, 40
-.equ trap_snapshot_off_route, 48
-.equ trap_snapshot_size, 56
+.equ trap_snapshot_off_x0, 48
+.equ trap_snapshot_off_x1, 56
+.equ trap_snapshot_off_x2, 64
+.equ trap_snapshot_off_route, 72
+.equ trap_snapshot_size, 80
 
 el1_trap_count:
   .quad 0
@@ -329,6 +403,12 @@ last_elr_el1:
   .quad 0
 last_spsr_el1:
   .quad 0
+last_x0:
+  .quad 0
+last_x1:
+  .quad 0
+last_x2:
+  .quad 0
 last_x8:
   .quad 0
 last_trap_kind:
@@ -336,3 +416,5 @@ last_trap_kind:
 last_sys_route:
   .quad 0
 trap_snapshot_end:
+last_sys_ret:
+  .quad 0

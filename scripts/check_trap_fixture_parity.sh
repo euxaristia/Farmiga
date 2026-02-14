@@ -59,6 +59,9 @@ check_eq "$(fixture_val trap_snapshot_off_esr)" "$(coatl_const_dec trap_snapshot
 check_eq "$(fixture_val trap_snapshot_off_elr)" "$(coatl_const_dec trap_snapshot_abi_off_elr)" "trap_snapshot_off_elr mismatch"
 check_eq "$(fixture_val trap_snapshot_off_spsr)" "$(coatl_const_dec trap_snapshot_abi_off_spsr)" "trap_snapshot_off_spsr mismatch"
 check_eq "$(fixture_val trap_snapshot_off_x8)" "$(coatl_const_dec trap_snapshot_abi_off_x8)" "trap_snapshot_off_x8 mismatch"
+check_eq "$(fixture_val trap_snapshot_off_x0)" "$(coatl_const_dec trap_snapshot_abi_off_x0)" "trap_snapshot_off_x0 mismatch"
+check_eq "$(fixture_val trap_snapshot_off_x1)" "$(coatl_const_dec trap_snapshot_abi_off_x1)" "trap_snapshot_off_x1 mismatch"
+check_eq "$(fixture_val trap_snapshot_off_x2)" "$(coatl_const_dec trap_snapshot_abi_off_x2)" "trap_snapshot_off_x2 mismatch"
 check_eq "$(fixture_val trap_snapshot_off_route)" "$(coatl_const_dec trap_snapshot_abi_off_route)" "trap_snapshot_off_route mismatch"
 
 check_eq "$(fixture_val fixture_svc_route)" "1" "fixture_svc_route expected 1"

@@ -1,5 +1,36 @@
 # Progress Log
 
+## 2026-02-14
+
+### Trap snapshot ABI expansion (syscall argument payload)
+
+- Extended AArch64 trap snapshot ABI in `arch/aarch64/boot.S` to capture syscall argument registers:
+  - new exported offsets: `trap_snapshot_off_x0`, `trap_snapshot_off_x1`, `trap_snapshot_off_x2`
+  - new captured symbols: `last_x0`, `last_x1`, `last_x2`
+  - updated layout constants:
+    - `trap_snapshot_size=80`
+    - offsets: `count=0`, `kind=8`, `esr=16`, `elr=24`, `spsr=32`, `x8=40`, `x0=48`, `x1=56`, `x2=64`, `route=72`
+- Updated Coatl ABI/helpers and ingest model in `kernel/sysv_kernel.coatl`:
+  - added `trap_snapshot_abi_off_x0/x1/x2` helpers
+  - expanded `TrapSnapshot` and `TrapSnapshotSlots` to include argument slots
+  - wired slot ingest and smoke assertions for expanded layout constants
+- Updated ABI contract/generation/parity scripts for expanded snapshot layout:
+  - `scripts/check_trap_abi_contract.sh`
+  - `scripts/gen_trap_snapshot_fixture.sh`
+  - `scripts/check_trap_fixture_parity.sh`
+  - `scripts/gen_coatl_trap_abi_constants.sh`
+  - `scripts/check_coatl_generated_constants_sync.sh`
+- Updated fixture contract assertions in `Makefile` and documentation in `README.md`.
+- Added runtime syscall-argument observability markers in trap serial output:
+  - `FarmigaKernel: syscall arg x0=1`
+  - `FarmigaKernel: syscall arg x1=4096`
+  - `FarmigaKernel: syscall arg x2=16`
+- Added QEMU smoke target `make test-aarch64-svc-args` and wired it into `make validate`.
+- Added minimal syscall return-slot model in AArch64 trap path:
+  - captures modeled return value in `last_sys_ret`
+  - emits deterministic return marker `FarmigaKernel: syscall ret x0=16` for write-path smoke
+- Added QEMU smoke target `make test-aarch64-svc-ret` and wired it into `make validate`.
+
 ## 2026-02-12
 
 ### Repository foundation

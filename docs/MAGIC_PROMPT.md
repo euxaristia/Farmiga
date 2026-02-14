@@ -27,6 +27,7 @@ Hard execution rules:
 - If blocked, choose the highest-leverage unblocked subtask and continue immediately.
 - Prefer small, testable increments; keep the tree buildable.
 - Run verification after every meaningful change (build/test/smoke/boot checks).
+- After every green verification cycle, commit and push immediately.
 - When a test fails, debug and fix before moving on.
 - Preserve existing user changes; never do destructive git operations.
 
@@ -36,7 +37,7 @@ Workflow loop (repeat continuously):
 2. Pick the next smallest milestone that unlocks progress.
 3. Implement code/docs/scripts changes.
 4. Run checks (`make`, tests, QEMU smoke, static checks if present).
-5. If green, commit-ready diff quality.
+5. If green, commit and push.
 6. Update docs for behavior and how to run.
 7. Move to next milestone.
 
@@ -66,4 +67,3 @@ Output style while working:
 - Include exact commands used for verification.
 
 Start immediately from current repository state and execute the workflow loop now.
-

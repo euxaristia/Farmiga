@@ -16,9 +16,14 @@ QEMU_TIMEOUT_SECS ?= 5
 EXPECTED_BANNER ?= FarmigaKernel: aarch64 stage0
 EXPECTED_SYSCALL_BANNER ?= FarmigaKernel: el1 sync syscall
 EXPECTED_SYSCALL_GETPID_BANNER ?= FarmigaKernel: syscall getpid(20)
+EXPECTED_SYSCALL_WRITE_BANNER ?= FarmigaKernel: syscall write(4)
 EXPECTED_SYSCALL_UNKNOWN_BANNER ?= FarmigaKernel: syscall unknown
 EXPECTED_TRAP_KIND_SYNC_BANNER ?= FarmigaKernel: trap kind sync
 EXPECTED_ROUTE_NONE_BANNER ?= FarmigaKernel: route none
+EXPECTED_SYSCALL_ARG_X0_BANNER ?= FarmigaKernel: syscall arg x0=1
+EXPECTED_SYSCALL_ARG_X1_BANNER ?= FarmigaKernel: syscall arg x1=4096
+EXPECTED_SYSCALL_ARG_X2_BANNER ?= FarmigaKernel: syscall arg x2=16
+EXPECTED_SYSCALL_RET_X0_16_BANNER ?= FarmigaKernel: syscall ret x0=16
 
 COATL ?= /home/euxaristia/Projects/Coatl/coatl
 COATL_ARCH ?= x86_64
@@ -32,13 +37,13 @@ COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
 COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
 .PHONY: all validate toolchain-aarch64 aarch64 run-aarch64 test-aarch64 clean coatl-sysv-smoke
-.PHONY: test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
+.PHONY: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
 .PHONY: gen-coatl-trap-abi-constants test-coatl-generated-trap-abi-sync
 .PHONY: coatl-userland-smoke
 
 all: aarch64
-validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity test-coatl-generated-trap-abi-sync
+validate: coatl-sysv-smoke coatl-userland-smoke test-aarch64 test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity test-coatl-generated-trap-abi-sync
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -124,6 +129,102 @@ test-aarch64-svc: toolchain-aarch64 | $(BUILD_DIR)
 		exit 1; \
 	fi; \
 	echo "QEMU svc trap check passed"
+
+test-aarch64-svc-args: toolchain-aarch64 | $(BUILD_DIR)
+	@command -v $(QEMU) >/dev/null 2>&1 || { echo "missing: $(QEMU)"; exit 1; }
+	@command -v $(TIMEOUT) >/dev/null 2>&1 || { echo "missing: $(TIMEOUT)"; exit 1; }
+	$(AS) --defsym TRAP_TEST_SVC=1 --defsym TRAP_TEST_SVC_NO=4 --defsym TRAP_TEST_SVC_ARG0=1 --defsym TRAP_TEST_SVC_ARG1=4096 --defsym TRAP_TEST_SVC_ARG2=16 -o $(BUILD_DIR)/boot_aarch64_svc_args.o arch/aarch64/boot.S
+	$(LD) -T arch/aarch64/linker.ld -o $(BUILD_DIR)/farmiga-aarch64-svc-args.elf $(BUILD_DIR)/boot_aarch64_svc_args.o
+	@set -eu; \
+	out_file="$(BUILD_DIR)/qemu-aarch64-svc-args.log"; \
+	$(TIMEOUT) $(QEMU_TIMEOUT_SECS) $(QEMU) \
+		-machine virt \
+		-cpu cortex-a72 \
+		-nographic \
+		-kernel $(BUILD_DIR)/farmiga-aarch64-svc-args.elf \
+		> "$$out_file" 2>&1 || true; \
+	if ! grep -Fq "$(EXPECTED_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: boot banner not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: syscall banner not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_TRAP_KIND_SYNC_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: trap kind sync marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_ARG_X0_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: x0 marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_ARG_X1_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: x1 marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_ARG_X2_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: x2 marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_WRITE_BANNER)" "$$out_file"; then \
+		echo "QEMU svc args check failed: write route marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	echo "QEMU svc args check passed"
+
+test-aarch64-svc-ret: toolchain-aarch64 | $(BUILD_DIR)
+	@command -v $(QEMU) >/dev/null 2>&1 || { echo "missing: $(QEMU)"; exit 1; }
+	@command -v $(TIMEOUT) >/dev/null 2>&1 || { echo "missing: $(TIMEOUT)"; exit 1; }
+	$(AS) --defsym TRAP_TEST_SVC=1 --defsym TRAP_TEST_SVC_NO=4 --defsym TRAP_TEST_SVC_ARG0=1 --defsym TRAP_TEST_SVC_ARG1=4096 --defsym TRAP_TEST_SVC_ARG2=16 -o $(BUILD_DIR)/boot_aarch64_svc_ret.o arch/aarch64/boot.S
+	$(LD) -T arch/aarch64/linker.ld -o $(BUILD_DIR)/farmiga-aarch64-svc-ret.elf $(BUILD_DIR)/boot_aarch64_svc_ret.o
+	@set -eu; \
+	out_file="$(BUILD_DIR)/qemu-aarch64-svc-ret.log"; \
+	$(TIMEOUT) $(QEMU_TIMEOUT_SECS) $(QEMU) \
+		-machine virt \
+		-cpu cortex-a72 \
+		-nographic \
+		-kernel $(BUILD_DIR)/farmiga-aarch64-svc-ret.elf \
+		> "$$out_file" 2>&1 || true; \
+	if ! grep -Fq "$(EXPECTED_BANNER)" "$$out_file"; then \
+		echo "QEMU svc ret check failed: boot banner not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_BANNER)" "$$out_file"; then \
+		echo "QEMU svc ret check failed: syscall banner not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_WRITE_BANNER)" "$$out_file"; then \
+		echo "QEMU svc ret check failed: write route marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	if ! grep -Fq "$(EXPECTED_SYSCALL_RET_X0_16_BANNER)" "$$out_file"; then \
+		echo "QEMU svc ret check failed: return marker not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	echo "QEMU svc ret check passed"
 
 test-aarch64-svc-unknown: toolchain-aarch64 | $(BUILD_DIR)
 	@command -v $(QEMU) >/dev/null 2>&1 || { echo "missing: $(QEMU)"; exit 1; }
@@ -247,14 +348,17 @@ test-aarch64-trap-fixture: toolchain-aarch64 $(A64_ELF) | $(BUILD_DIR)
 	@set -eu; \
 	fixture="$(BUILD_DIR)/trap_snapshot_fixture.env"; \
 	NM=$(NM) bash scripts/gen_trap_snapshot_fixture.sh $(A64_ELF) "$$fixture"; \
-	grep -Eq '^trap_snapshot_size=56$$' "$$fixture" || { echo "trap fixture check failed: size mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_size=80$$' "$$fixture" || { echo "trap fixture check failed: size mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^trap_snapshot_off_count=0$$' "$$fixture" || { echo "trap fixture check failed: off_count mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^trap_snapshot_off_kind=8$$' "$$fixture" || { echo "trap fixture check failed: off_kind mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^trap_snapshot_off_esr=16$$' "$$fixture" || { echo "trap fixture check failed: off_esr mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^trap_snapshot_off_elr=24$$' "$$fixture" || { echo "trap fixture check failed: off_elr mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^trap_snapshot_off_spsr=32$$' "$$fixture" || { echo "trap fixture check failed: off_spsr mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^trap_snapshot_off_x8=40$$' "$$fixture" || { echo "trap fixture check failed: off_x8 mismatch"; cat "$$fixture"; exit 1; }; \
-	grep -Eq '^trap_snapshot_off_route=48$$' "$$fixture" || { echo "trap fixture check failed: off_route mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_x0=48$$' "$$fixture" || { echo "trap fixture check failed: off_x0 mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_x1=56$$' "$$fixture" || { echo "trap fixture check failed: off_x1 mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_x2=64$$' "$$fixture" || { echo "trap fixture check failed: off_x2 mismatch"; cat "$$fixture"; exit 1; }; \
+	grep -Eq '^trap_snapshot_off_route=72$$' "$$fixture" || { echo "trap fixture check failed: off_route mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^fixture_svc_route=1$$' "$$fixture" || { echo "trap fixture check failed: svc route fixture mismatch"; cat "$$fixture"; exit 1; }; \
 	grep -Eq '^fixture_brk_route=0$$' "$$fixture" || { echo "trap fixture check failed: brk route fixture mismatch"; cat "$$fixture"; exit 1; }; \
 	echo "QEMU trap fixture contract check passed"
