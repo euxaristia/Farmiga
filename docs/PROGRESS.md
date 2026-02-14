@@ -96,6 +96,7 @@
 - Fixed aarch64 serial shell input stability:
   - added explicit UART control init (`UARTCR=0x301`) at boot to enforce normal RX/TX mode
   - prevents unstable prompt behavior where command stream appeared pre-fed and user typing was not reliably visible.
+- Added explicit UART RX flush before shell line reads to discard stale serial bytes and ensure command parsing starts from fresh user input at the prompt.
 
 ## 2026-02-12
 

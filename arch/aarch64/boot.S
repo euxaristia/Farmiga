@@ -309,6 +309,7 @@ shell_cmd_begin:
 shell_readline:
   ldr x0, =shell_line_buf
   mov x1, #0
+  bl uart_rx_flush
 30:
   bl uart_getc_blocking
   cmp w1, #'\r'
@@ -324,6 +325,17 @@ shell_readline:
 31:
   mov w2, #0
   strb w2, [x0, x1]
+  ret
+
+uart_rx_flush:
+  ldr x2, =UART0_BASE
+40:
+  ldr w3, [x2, #UARTFR]
+  and w3, w3, #RXFE
+  cbnz w3, 41f
+  ldr w3, [x2, #UARTDR]
+  b 40b
+41:
   ret
 
 .align 11
