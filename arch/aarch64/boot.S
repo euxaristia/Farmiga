@@ -51,6 +51,18 @@
   .equ TRAP_TEST_BRK_IMM, 0
 .endif
 
+.ifdef TRAP_TEST_SVC
+  .equ TRAP_VERBOSE, 1
+.endif
+
+.ifdef TRAP_TEST_BRK
+  .equ TRAP_VERBOSE, 1
+.endif
+
+.ifndef TRAP_VERBOSE
+  .equ TRAP_VERBOSE, 0
+.endif
+
 _start:
   ldr x0, =__stack_top
   mov sp, x0
@@ -312,24 +324,34 @@ trap_common:
   b.eq 14f
   b 15f
 11:
+  .if TRAP_VERBOSE
   ldr x0, =trap_kind_sync_banner
   bl uart_puts
+  .endif
   b 16f
 12:
+  .if TRAP_VERBOSE
   ldr x0, =trap_kind_irq_banner
   bl uart_puts
+  .endif
   b 16f
 13:
+  .if TRAP_VERBOSE
   ldr x0, =trap_kind_fiq_banner
   bl uart_puts
+  .endif
   b 16f
 14:
+  .if TRAP_VERBOSE
   ldr x0, =trap_kind_serr_banner
   bl uart_puts
+  .endif
   b 16f
 15:
+  .if TRAP_VERBOSE
   ldr x0, =trap_kind_unknown_banner
   bl uart_puts
+  .endif
 16:
 
   cmp x10, #1
@@ -341,35 +363,45 @@ trap_common:
   cmp x2, #0x15
   b.eq 3f
 
+  .if TRAP_VERBOSE
   ldr x0, =trap_banner
   bl uart_puts
   ldr x0, =route_none_banner
   bl uart_puts
+  .endif
   b 4f
 
 3:
+  .if TRAP_VERBOSE
   ldr x0, =syscall_banner
   bl uart_puts
+  .endif
   ldr x0, =last_x0
   ldr x1, [x0]
   cmp x1, #1
   b.ne 31f
+  .if TRAP_VERBOSE
   ldr x0, =sys_arg_x0_fd1_banner
   bl uart_puts
+  .endif
 31:
   ldr x0, =last_x1
   ldr x1, [x0]
   cmp x1, #4096
   b.ne 32f
+  .if TRAP_VERBOSE
   ldr x0, =sys_arg_x1_ptr4096_banner
   bl uart_puts
+  .endif
 32:
   ldr x0, =last_x2
   ldr x1, [x0]
   cmp x1, #16
   b.ne 33f
+  .if TRAP_VERBOSE
   ldr x0, =sys_arg_x2_len16_banner
   bl uart_puts
+  .endif
 33:
   ldr x1, =last_x8
   ldr x8, [x1]
@@ -385,38 +417,50 @@ trap_common:
 5:
   mov x11, #1
   mov x13, #1
+  .if TRAP_VERBOSE
   ldr x0, =sys_getpid_banner
   bl uart_puts
+  .endif
   b 4f
 6:
   mov x11, #2
   mov x13, #0
+  .if TRAP_VERBOSE
   ldr x0, =sys_getppid_banner
   bl uart_puts
+  .endif
   b 4f
 7:
   mov x11, #3
   mov x13, #0
+  .if TRAP_VERBOSE
   ldr x0, =sys_exit_banner
   bl uart_puts
+  .endif
   b 4f
 8:
   mov x11, #4
   ldr x14, =last_x2
   ldr x13, [x14]
+  .if TRAP_VERBOSE
   ldr x0, =sys_write_banner
   bl uart_puts
+  .endif
   b 4f
 9:
   mov x11, #255
+  .if TRAP_VERBOSE
   ldr x0, =sys_unknown_banner
   bl uart_puts
+  .endif
   b 4f
 10:
+  .if TRAP_VERBOSE
   ldr x0, =trap_banner
   bl uart_puts
   ldr x0, =route_none_banner
   bl uart_puts
+  .endif
 4:
   ldr x0, =last_sys_route
   str x11, [x0]
@@ -424,8 +468,10 @@ trap_common:
   str x13, [x0]
   cmp x13, #16
   b.ne 41f
+  .if TRAP_VERBOSE
   ldr x0, =sys_ret_16_banner
   bl uart_puts
+  .endif
 41:
 2:
   wfe

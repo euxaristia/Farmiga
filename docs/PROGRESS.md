@@ -83,6 +83,9 @@
 - Improved aarch64 serial shell UX:
   - boot now emits ANSI clear-screen sequence before banners
   - shell command responses now start on a fresh line for prompt readability.
+- Suppressed trap-demo banner spam on normal boot:
+  - trap/syscall observability banners are now emitted only in trap-test builds (`TRAP_TEST_SVC` / `TRAP_TEST_BRK`)
+  - default boot path stays focused on `init` + `farmiga-sh>` interaction.
 
 ## 2026-02-12
 
