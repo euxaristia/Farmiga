@@ -495,9 +495,28 @@ fn trap_snapshot_from_slots(slots: TrapSnapshotSlots) -> TrapSnapshot {
   );
 }
 
+fn sys_dispatch_slots_ret(slots: TrapSnapshotSlots, cur: Process) -> i32 {
+  return sys_dispatch(
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x8()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x0()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x1()),
+    trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x2()),
+    cur
+  );
+}
+
 fn trap_snapshot_to_event(ts: TrapSnapshot) -> TrapEvent {
   let kind: i32 = ts.trap_kind;
   return trap_event_make(kind, 1, ts.esr, ts.elr, ts.spsr, ts.x8);
+}
+
+fn trap_snapshot_to_trapframe(ts: TrapSnapshot) -> TrapFrame {
+  return trapframe_make(ts.x8, ts.x0, ts.x1, ts.x2);
+}
+
+fn sys_dispatch_snapshot_ret(ts: TrapSnapshot, cur: Process) -> i32 {
+  let tf: TrapFrame = trap_snapshot_to_trapframe(ts);
+  return sys_dispatch_tf_ret(tf, cur);
 }
 
 fn trap_snapshot_route_id(ts: TrapSnapshot) -> i32 {
@@ -613,7 +632,11 @@ fn main() -> i32 {
   let snap_sys: TrapSnapshot = trap_snapshot_make(1, 0x54000000, 0x40081000, 0x3c5, 20, 11, 12, 13, 1);
   let snap_irq: TrapSnapshot = trap_snapshot_make(2, 0, 0x40081000, 0x3c5, 20, 21, 22, 23, 255);
   let slots_sys: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081000, 0x3c5, 20, 11, 12, 13, 1);
+  let slots_write: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081040, 0x3c5, 4, 1, 4096, 16, 4);
+  let slots_bad: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081040, 0x3c5, 999, 0, 0, 0, 255);
   let snap_from_slots: TrapSnapshot = trap_snapshot_from_slots(slots_sys);
+  let slots_write_ret: i32 = sys_dispatch_slots_ret(slots_write, init);
+  let slots_bad_ret: i32 = sys_dispatch_slots_ret(slots_bad, init);
   let ev_from_snap_sys: TrapEvent = trap_snapshot_to_event(snap_sys);
   let ev_from_snap_irq: TrapEvent = trap_snapshot_to_event(snap_irq);
   let _snap_route_sys: i32 = trap_snapshot_route_id(snap_sys);

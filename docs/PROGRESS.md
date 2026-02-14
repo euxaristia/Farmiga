@@ -30,6 +30,10 @@
   - captures modeled return value in `last_sys_ret`
   - emits deterministic return marker `FarmigaKernel: syscall ret x0=16` for write-path smoke
 - Added QEMU smoke target `make test-aarch64-svc-ret` and wired it into `make validate`.
+- Wired Coatl trap snapshot payload into syscall dispatch model:
+  - added `trap_snapshot_to_trapframe`
+  - added `sys_dispatch_snapshot_ret`
+  - host smoke now validates snapshot-driven dispatch for write (`ret=16`) and unknown syscall (`-ENOSYS`-like path).
 
 ## 2026-02-12
 
