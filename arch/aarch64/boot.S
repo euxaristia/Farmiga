@@ -31,6 +31,7 @@
 .equ UARTFR,    0x18
 .equ UARTCR,    0x30
 .equ TXFF,      0x20
+.equ TXFE,      0x80
 .equ RXFE,      0x10
 
 .ifndef TRAP_TEST_SVC_NO
@@ -120,7 +121,7 @@ _start:
   b.eq 26f
 
   cmp x1, #4
-  b.ne 21f
+  b.ne 20f
   ldrb w2, [x0, #0]
   cmp w2, #'h'
   b.ne 21f
@@ -262,11 +263,17 @@ _start:
   b 1b
 
 uart_puts:
-  ldrb w1, [x0], #1
-  cbz w1, 2f
-  bl uart_putc
-  b uart_puts
+  ldr x2, =UART0_BASE
 2:
+  ldrb w1, [x0], #1
+  cbz w1, 3f
+4:
+  ldr w3, [x2, #UARTFR]
+  and w3, w3, #TXFF
+  cbnz w3, 4b
+  str w1, [x2, #UARTDR]
+  b uart_puts
+3:
   ret
 
 uart_putc:
@@ -279,6 +286,15 @@ uart_putc:
   ret
 
 uart_init:
+  b uart_mode_tx_only
+
+uart_mode_tx_only:
+  ldr x2, =UART0_BASE
+  mov w3, #0x101
+  str w3, [x2, #UARTCR]
+  ret
+
+uart_mode_tx_rx:
   ldr x2, =UART0_BASE
   mov w3, #0x301
   str w3, [x2, #UARTCR]
@@ -296,18 +312,19 @@ uart_getc_blocking:
 
 shell_prompt:
   ldr x0, =shell_prompt_banner
-  bl uart_puts
-  ret
+  b uart_puts
 
 shell_cmd_begin:
   ldr x0, =shell_newline_banner
-  bl uart_puts
-  ret
+  b uart_puts
 
 shell_readline:
+  sub sp, sp, #16
+  str x30, [sp]
+  bl uart_mode_tx_rx
   ldr x0, =shell_line_buf
   mov x1, #0
-  bl uart_rx_flush
+  bl uart_tx_drain
 30:
   bl uart_getc_blocking
   cmp w1, #'\r'
@@ -323,17 +340,17 @@ shell_readline:
 31:
   mov w2, #0
   strb w2, [x0, x1]
+  bl uart_mode_tx_only
+  ldr x30, [sp]
+  add sp, sp, #16
   ret
 
-uart_rx_flush:
+uart_tx_drain:
   ldr x2, =UART0_BASE
-40:
+42:
   ldr w3, [x2, #UARTFR]
-  and w3, w3, #RXFE
-  cbnz w3, 41f
-  ldr w3, [x2, #UARTDR]
-  b 40b
-41:
+  and w3, w3, #TXFE
+  cbz w3, 42b
   ret
 
 .align 11
