@@ -24,6 +24,7 @@ X86_AS := $(X86_CROSS)as
 X86_LD := $(X86_CROSS)ld
 X86_OBJCOPY := $(X86_CROSS)objcopy
 QEMU ?= qemu-system-aarch64
+QEMU_X86 ?= qemu-system-x86_64
 TIMEOUT ?= timeout
 QEMU_TIMEOUT_SECS ?= 5
 EXPECTED_BANNER ?= FarmigaKernel: aarch64 stage0
@@ -37,6 +38,7 @@ EXPECTED_SYSCALL_ARG_X0_BANNER ?= FarmigaKernel: syscall arg x0=1
 EXPECTED_SYSCALL_ARG_X1_BANNER ?= FarmigaKernel: syscall arg x1=4096
 EXPECTED_SYSCALL_ARG_X2_BANNER ?= FarmigaKernel: syscall arg x2=16
 EXPECTED_SYSCALL_RET_X0_16_BANNER ?= FarmigaKernel: syscall ret x0=16
+EXPECTED_X86_BANNER ?= FarmigaKernel: x86_64 stage0
 
 COATL ?= /home/euxaristia/Projects/Coatl/coatl
 COATL_ARCH ?= x86_64
@@ -52,7 +54,7 @@ X86_BOOT_OBJ := $(BUILD_DIR)/boot_x86_64.o
 COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
 COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
-.PHONY: all validate toolchain-aarch64 toolchain-x86_64 toolchain-preflight aarch64 x86_64 run-aarch64 test-aarch64 test-x86_64-build clean coatl-sysv-smoke
+.PHONY: all validate toolchain-aarch64 toolchain-x86_64 toolchain-preflight aarch64 x86_64 run-aarch64 run-x86_64-loader test-aarch64 test-x86_64-build test-x86_64-qemu-smoke clean coatl-sysv-smoke
 .PHONY: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
 .PHONY: gen-coatl-trap-abi-constants test-coatl-generated-trap-abi-sync
@@ -113,6 +115,37 @@ run-aarch64: toolchain-aarch64 $(A64_ELF)
 		-cpu cortex-a72 \
 		-nographic \
 		-kernel $(A64_ELF)
+
+run-x86_64-loader: toolchain-x86_64 $(X86_ELF)
+	@command -v $(QEMU_X86) >/dev/null 2>&1 || { echo "missing: $(QEMU_X86)"; exit 1; }
+	$(QEMU_X86) \
+		-machine q35 \
+		-nographic \
+		-monitor none \
+		-serial stdio \
+		-nodefaults \
+		-device loader,file=$(X86_ELF),cpu-num=0
+
+test-x86_64-qemu-smoke: toolchain-x86_64 $(X86_ELF) | $(BUILD_DIR)
+	@command -v $(QEMU_X86) >/dev/null 2>&1 || { echo "missing: $(QEMU_X86)"; exit 1; }
+	@command -v $(TIMEOUT) >/dev/null 2>&1 || { echo "missing: $(TIMEOUT)"; exit 1; }
+	@set -eu; \
+	out_file="$(BUILD_DIR)/qemu-x86_64-loader.log"; \
+	$(TIMEOUT) $(QEMU_TIMEOUT_SECS) $(QEMU_X86) \
+		-machine q35 \
+		-nographic \
+		-monitor none \
+		-serial stdio \
+		-nodefaults \
+		-device loader,file=$(X86_ELF),cpu-num=0 \
+		> "$$out_file" 2>&1 || true; \
+	if ! grep -Fq "$(EXPECTED_X86_BANNER)" "$$out_file"; then \
+		echo "x86_64 qemu smoke failed: banner not found"; \
+		echo "--- qemu output ---"; \
+		cat "$$out_file"; \
+		exit 1; \
+	fi; \
+	echo "x86_64 qemu smoke passed"
 
 test-aarch64: toolchain-aarch64 $(A64_ELF) | $(BUILD_DIR)
 	@command -v $(QEMU) >/dev/null 2>&1 || { echo "missing: $(QEMU)"; exit 1; }

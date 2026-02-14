@@ -49,6 +49,10 @@
   - `make test-x86_64-build` validates x86_64 artifact build + PVH Xen note presence + stage0 banner string
   - wired `test-x86_64-build` into `make validate`.
 - x86_64 QEMU direct boot via `-kernel` remains blocked in this environment (SeaBIOS loop despite PVH note); build-contract lane is used as current parity guardrail.
+- Added explicit experimental x86_64 loader execution targets:
+  - `make run-x86_64-loader`
+  - `make test-x86_64-qemu-smoke` (banner assertion on serial log)
+  - these targets are currently optional and not part of `validate` while x86_64 boot protocol bring-up is still being stabilized.
 
 ## 2026-02-12
 

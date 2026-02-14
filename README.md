@@ -56,6 +56,18 @@ Run x86_64 scaffold build contract smoke:
 make test-x86_64-build
 ```
 
+Run experimental x86_64 QEMU loader smoke:
+
+```bash
+make test-x86_64-qemu-smoke
+```
+
+Run interactive x86_64 loader path:
+
+```bash
+make run-x86_64-loader
+```
+
 Run on QEMU:
 
 ```bash
