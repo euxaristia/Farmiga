@@ -234,6 +234,10 @@ Run standalone environment/toolchain preflight:
 make toolchain-preflight
 ```
 
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
 ## Notes
 
 - Coatl AArch64 codegen is still evolving. This repo keeps the machine-entry path in assembly while growing portable kernel logic in Coatl.
