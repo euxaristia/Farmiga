@@ -335,11 +335,29 @@ shell_readline:
   b.eq 31f
   cmp w1, #'\n'
   b.eq 31f
+
+  // Handle backspace (8) or DEL (127)
+  cmp w1, #8
+  b.eq 35f
+  cmp w1, #127
+  b.eq 35f
+
   cmp x4, #31
   b.ge 30b
   strb w1, [x0, x4]
   bl uart_putc
   add x4, x4, #1
+  b 30b
+
+35: // Backspace handler
+  cbz x4, 30b
+  sub x4, x4, #1
+  mov w1, #8
+  bl uart_putc
+  mov w1, #' '
+  bl uart_putc
+  mov w1, #8
+  bl uart_putc
   b 30b
 31:
   mov w2, #0
