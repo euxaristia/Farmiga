@@ -22,13 +22,13 @@
   - `scripts/check_coatl_generated_constants_sync.sh`
 - Updated fixture contract assertions in `Makefile` and documentation in `README.md`.
 - Added runtime syscall-argument observability markers in trap serial output:
-  - `FarmigaKernel: syscall arg x0=1`
-  - `FarmigaKernel: syscall arg x1=4096`
-  - `FarmigaKernel: syscall arg x2=16`
+  - `Farmiga: syscall arg x0=1`
+  - `Farmiga: syscall arg x1=4096`
+  - `Farmiga: syscall arg x2=16`
 - Added QEMU smoke target `make test-aarch64-svc-args` and wired it into `make validate`.
 - Added minimal syscall return-slot model in AArch64 trap path:
   - captures modeled return value in `last_sys_ret`
-  - emits deterministic return marker `FarmigaKernel: syscall ret x0=16` for write-path smoke
+  - emits deterministic return marker `Farmiga: syscall ret x0=16` for write-path smoke
 - Added QEMU smoke target `make test-aarch64-svc-ret` and wired it into `make validate`.
 - Wired Coatl trap snapshot payload into syscall dispatch model:
   - added `trap_snapshot_to_trapframe`
@@ -129,7 +129,7 @@
   - exports stable snapshot symbols (`trap_snapshot_base..trap_snapshot_end`) for a future Coatl reader bridge
   - decodes exception class from `ESR_EL1` and classifies EC=`0x15` as AArch64 SVC/syscall trap
   - emits deterministic serial marker:
-    - `FarmigaKernel: el1 sync syscall`
+    - `Farmiga: el1 sync syscall`
   - adds syscall-number route markers from trapped `x8`:
     - `getpid(20)`, `getppid(64)`, `exit(1)`, `write(4)`, `unknown`
   - stores numeric route code into `last_sys_route` (`1/2/3/4/255`)

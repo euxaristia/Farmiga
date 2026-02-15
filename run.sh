@@ -1,5 +1,5 @@
 #!/bin/bash
-# FarmigaKernel: QEMU run helper
+# Farmiga: QEMU run helper
 # Copyright (C) 2026 euxaristia
 #
 # This program is free software: you can redistribute it and/or modify

@@ -1,8 +1,8 @@
-# FarmigaKernel
+# Farmiga
 
 ![Farmiga Shell Success](docs/images/shell_success.png)
 
-FarmigaKernel is a UNIX SysV-inspired hobby kernel project with:
+Farmiga is a UNIX SysV-inspired hobby kernel project with:
 - `aarch64` as the primary boot target
 - `x86_64` as a planned second target
 - kernel logic authored in Coatl where practical
@@ -79,7 +79,7 @@ make run-aarch64
 You should see:
 
 ```text
-FarmigaKernel: aarch64 stage0
+Farmiga: aarch64 stage0
 ```
 
 On normal boot, Farmiga now enters a minimal serial shell prompt:

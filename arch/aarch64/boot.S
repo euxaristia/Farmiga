@@ -1,5 +1,5 @@
 /*
- * FarmigaKernel: AArch64 boot entry
+ * Farmiga: AArch64 boot entry
  * Copyright (C) 2026 euxaristia
  *
  * This program is free software: you can redistribute it and/or modify
@@ -780,67 +780,67 @@ trap_store:
 clear_screen_banner:
   .asciz "\033[2J\033[H"
 boot_banner:
-  .asciz "FarmigaKernel: aarch64 stage0\r\n"
+  .asciz "Farmiga: aarch64 stage0\r\n"
 .if TRAP_VERBOSE
 trap_banner:
-  .asciz "FarmigaKernel: el1 trap entered\r\n"
+  .asciz "Farmiga: el1 trap entered\r\n"
 trap_kind_sync_banner:
-  .asciz "FarmigaKernel: trap kind sync\r\n"
+  .asciz "Farmiga: trap kind sync\r\n"
 trap_kind_irq_banner:
-  .asciz "FarmigaKernel: trap kind irq\r\n"
+  .asciz "Farmiga: trap kind irq\r\n"
 trap_kind_fiq_banner:
-  .asciz "FarmigaKernel: trap kind fiq\r\n"
+  .asciz "Farmiga: trap kind fiq\r\n"
 trap_kind_serr_banner:
-  .asciz "FarmigaKernel: trap kind serr\r\n"
+  .asciz "Farmiga: trap kind serr\r\n"
 trap_kind_unknown_banner:
-  .asciz "FarmigaKernel: trap kind unknown\r\n"
+  .asciz "Farmiga: trap kind unknown\r\n"
 syscall_banner:
-  .asciz "FarmigaKernel: el1 sync syscall\r\n"
+  .asciz "Farmiga: el1 sync syscall\r\n"
 sys_getpid_banner:
-  .asciz "FarmigaKernel: syscall getpid(20)\r\n"
+  .asciz "Farmiga: syscall getpid(20)\r\n"
 sys_getppid_banner:
-  .asciz "FarmigaKernel: syscall getppid(64)\r\n"
+  .asciz "Farmiga: syscall getppid(64)\r\n"
 sys_exit_banner:
-  .asciz "FarmigaKernel: syscall exit(1)\r\n"
+  .asciz "Farmiga: syscall exit(1)\r\n"
 sys_write_banner:
-  .asciz "FarmigaKernel: syscall write(4)\r\n"
+  .asciz "Farmiga: syscall write(4)\r\n"
 sys_arg_x0_fd1_banner:
-  .asciz "FarmigaKernel: syscall arg x0=1\r\n"
+  .asciz "Farmiga: syscall arg x0=1\r\n"
 sys_arg_x1_ptr4096_banner:
-  .asciz "FarmigaKernel: syscall arg x1=4096\r\n"
+  .asciz "Farmiga: syscall arg x1=4096\r\n"
 sys_arg_x2_len16_banner:
-  .asciz "FarmigaKernel: syscall arg x2=16\r\n"
+  .asciz "Farmiga: syscall arg x2=16\r\n"
 sys_ret_16_banner:
-  .asciz "FarmigaKernel: syscall ret x0=16\r\n"
+  .asciz "Farmiga: syscall ret x0=16\r\n"
 sys_unknown_banner:
-  .asciz "FarmigaKernel: syscall unknown\r\n"
+  .asciz "Farmiga: syscall unknown\r\n"
 route_none_banner:
-  .asciz "FarmigaKernel: route none\r\n"
+  .asciz "Farmiga: route none\r\n"
 .endif
 init_banner:
-  .asciz "FarmigaKernel: init started\r\n"
+  .asciz "Farmiga: init started\r\n"
 shell_prompt_banner:
   .asciz "farmiga-sh> "
 shell_newline_banner:
   .asciz "\r\n"
 shell_help_banner:
-  .asciz "FarmigaKernel: sh help [help,ls,cat,echo,mount,hello,ps,exit]\r\n"
+  .asciz "Farmiga: sh help [help,ls,cat,echo,mount,hello,ps,exit]\r\n"
 hello_banner:
   .asciz "Hello from Farmiga OS!\r\n"
 shell_ls_banner:
-  .asciz "FarmigaKernel: sh ls /\r\n"
+  .asciz "Farmiga: sh ls /\r\n"
 shell_cat_banner:
-  .asciz "FarmigaKernel: sh cat /bin/sh\r\n"
+  .asciz "Farmiga: sh cat /bin/sh\r\n"
 shell_echo_banner:
-  .asciz "FarmigaKernel: sh echo ok\r\n"
+  .asciz "Farmiga: sh echo ok\r\n"
 shell_mount_banner:
-  .asciz "FarmigaKernel: sh mount rootfs /\r\n"
+  .asciz "Farmiga: sh mount rootfs /\r\n"
 shell_ps_banner:
-  .asciz "FarmigaKernel: sh ps\r\n"
+  .asciz "Farmiga: sh ps\r\n"
 shell_unknown_banner:
-  .asciz "FarmigaKernel: sh unknown\r\n"
+  .asciz "Farmiga: sh unknown\r\n"
 shell_exit_banner:
-  .asciz "FarmigaKernel: sh exit\r\n"
+  .asciz "Farmiga: sh exit\r\n"
 
 .section .bss
 .align 3

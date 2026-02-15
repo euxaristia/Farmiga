@@ -64,7 +64,7 @@ uart_putc:
 
 .section .rodata
 boot_banner:
-  .asciz "FarmigaKernel: x86_64 stage0\r\n"
+  .asciz "Farmiga: x86_64 stage0\r\n"
 
 .section .note.Xen
 .align 4

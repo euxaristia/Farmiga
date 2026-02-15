@@ -1,4 +1,4 @@
-# FarmigaKernel: build system
+# Farmiga: build system
 # Copyright (C) 2026 euxaristia
 #
 # This program is free software: you can redistribute it and/or modify
@@ -43,18 +43,18 @@ QEMU ?= qemu-system-aarch64
 QEMU_X86 ?= qemu-system-x86_64
 TIMEOUT ?= timeout
 QEMU_TIMEOUT_SECS ?= 5
-EXPECTED_BANNER ?= FarmigaKernel: aarch64 stage0
-EXPECTED_SYSCALL_BANNER ?= FarmigaKernel: el1 sync syscall
-EXPECTED_SYSCALL_GETPID_BANNER ?= FarmigaKernel: syscall getpid(20)
-EXPECTED_SYSCALL_WRITE_BANNER ?= FarmigaKernel: syscall write(4)
-EXPECTED_SYSCALL_UNKNOWN_BANNER ?= FarmigaKernel: syscall unknown
-EXPECTED_TRAP_KIND_SYNC_BANNER ?= FarmigaKernel: trap kind sync
-EXPECTED_ROUTE_NONE_BANNER ?= FarmigaKernel: route none
-EXPECTED_SYSCALL_ARG_X0_BANNER ?= FarmigaKernel: syscall arg x0=1
-EXPECTED_SYSCALL_ARG_X1_BANNER ?= FarmigaKernel: syscall arg x1=4096
-EXPECTED_SYSCALL_ARG_X2_BANNER ?= FarmigaKernel: syscall arg x2=16
-EXPECTED_SYSCALL_RET_X0_16_BANNER ?= FarmigaKernel: syscall ret x0=16
-EXPECTED_X86_BANNER ?= FarmigaKernel: x86_64 stage0
+EXPECTED_BANNER ?= Farmiga: aarch64 stage0
+EXPECTED_SYSCALL_BANNER ?= Farmiga: el1 sync syscall
+EXPECTED_SYSCALL_GETPID_BANNER ?= Farmiga: syscall getpid(20)
+EXPECTED_SYSCALL_WRITE_BANNER ?= Farmiga: syscall write(4)
+EXPECTED_SYSCALL_UNKNOWN_BANNER ?= Farmiga: syscall unknown
+EXPECTED_TRAP_KIND_SYNC_BANNER ?= Farmiga: trap kind sync
+EXPECTED_ROUTE_NONE_BANNER ?= Farmiga: route none
+EXPECTED_SYSCALL_ARG_X0_BANNER ?= Farmiga: syscall arg x0=1
+EXPECTED_SYSCALL_ARG_X1_BANNER ?= Farmiga: syscall arg x1=4096
+EXPECTED_SYSCALL_ARG_X2_BANNER ?= Farmiga: syscall arg x2=16
+EXPECTED_SYSCALL_RET_X0_16_BANNER ?= Farmiga: syscall ret x0=16
+EXPECTED_X86_BANNER ?= Farmiga: x86_64 stage0
 
 COATL ?= /home/euxaristia/Projects/Coatl/coatl
 COATL_ARCH ?= x86_64
@@ -122,7 +122,7 @@ test-x86_64-build: x86_64
 	@set -eu; \
 	readelf -n $(X86_ELF) | grep -Fq 'Xen' || { echo "x86_64 build check failed: PVH Xen note missing"; readelf -n $(X86_ELF); exit 1; }; \
 	readelf -n $(X86_ELF) | grep -Fq '0x00000012' || { echo "x86_64 build check failed: PVH note type missing"; readelf -n $(X86_ELF); exit 1; }; \
-	strings $(X86_ELF) | grep -Fq 'FarmigaKernel: x86_64 stage0' || { echo "x86_64 build check failed: stage0 banner missing"; strings $(X86_ELF) | head -n 200; exit 1; }; \
+	strings $(X86_ELF) | grep -Fq 'Farmiga: x86_64 stage0' || { echo "x86_64 build check failed: stage0 banner missing"; strings $(X86_ELF) | head -n 200; exit 1; }; \
 	echo "x86_64 build contract check passed"
 
 run-aarch64: toolchain-aarch64 $(A64_ELF)
@@ -362,9 +362,9 @@ test-aarch64-svc-matrix: toolchain-aarch64 | $(BUILD_DIR)
 	@set -eu; \
 	for no in 64 1 4; do \
 		case "$$no" in \
-			64) expect='FarmigaKernel: syscall getppid(64)' ;; \
-			1) expect='FarmigaKernel: syscall exit(1)' ;; \
-			4) expect='FarmigaKernel: syscall write(4)' ;; \
+			64) expect='Farmiga: syscall getppid(64)' ;; \
+			1) expect='Farmiga: syscall exit(1)' ;; \
+			4) expect='Farmiga: syscall write(4)' ;; \
 			*) echo "internal matrix error for $$no"; exit 1 ;; \
 		esac; \
 		obj="$(BUILD_DIR)/boot_aarch64_svc_$$no.o"; \
@@ -404,7 +404,7 @@ test-aarch64-brk: toolchain-aarch64 | $(BUILD_DIR)
 		cat "$$out_file"; \
 		exit 1; \
 	fi; \
-	if ! grep -Fq "FarmigaKernel: el1 trap entered" "$$out_file"; then \
+	if ! grep -Fq "Farmiga: el1 trap entered" "$$out_file"; then \
 		echo "QEMU brk trap check failed: generic trap banner not found"; \
 		echo "--- qemu output ---"; \
 		cat "$$out_file"; \
