@@ -117,10 +117,11 @@ _start:
 
 1:
   bl shell_readline
-  cmp x1, #0
+  mov x19, x1
+  cmp x19, #0
   b.eq 26f
 
-  cmp x1, #4
+  cmp x19, #4
   b.ne 20f
   ldrb w2, [x0, #0]
   cmp w2, #'h'
@@ -141,7 +142,7 @@ _start:
   b 1b
 
 20:
-  cmp x1, #4
+  cmp x19, #4
   b.ne 21f
   ldrb w2, [x0, #0]
   cmp w2, #'e'
@@ -162,7 +163,7 @@ _start:
   b 1b
 
 21:  // ls
-  cmp x1, #2
+  cmp x19, #2
   b.ne 22f
   ldrb w2, [x0, #0]
   cmp w2, #'l'
@@ -177,7 +178,7 @@ _start:
   b 1b
 
 22:  // cat
-  cmp x1, #3
+  cmp x19, #3
   b.ne 23f
   ldrb w2, [x0, #0]
   cmp w2, #'c'
@@ -195,7 +196,7 @@ _start:
   b 1b
 
 23:  // echo
-  cmp x1, #4
+  cmp x19, #4
   b.lt 24f
   ldrb w2, [x0, #0]
   cmp w2, #'e'
@@ -211,7 +212,7 @@ _start:
   b.ne 24f
 
   // Check if it's exactly "echo" or "echo "
-  cmp x1, #4
+  cmp x19, #4
   b.eq 231f
   ldrb w2, [x0, #4]
   cmp w2, #' '
@@ -220,7 +221,7 @@ _start:
 231:
   bl shell_cmd_begin
   ldr x0, =shell_line_buf
-  cmp x1, #5
+  cmp x19, #5
   b.lt 232f
   add x0, x0, #5    // skip "echo "
   bl uart_puts
@@ -231,7 +232,7 @@ _start:
   b 1b
 
 24:  // mount
-  cmp x1, #5
+  cmp x19, #5
   b.ne 245f
   ldrb w2, [x0, #0]
   cmp w2, #'m'
@@ -255,7 +256,7 @@ _start:
   b 1b
 
 245: // hello
-  cmp x1, #5
+  cmp x19, #5
   b.ne 25f
   ldrb w2, [x0, #0]
   cmp w2, #'h'
@@ -279,7 +280,7 @@ _start:
   b 1b
 
 25:  // ps
-  cmp x1, #2
+  cmp x19, #2
   b.ne 27f
   ldrb w2, [x0, #0]
   cmp w2, #'p'
@@ -312,7 +313,7 @@ uart_puts:
   and w3, w3, #TXFF
   cbnz w3, 4b
   str w1, [x2, #UARTDR]
-  b uart_puts
+  b 2b
 3:
   ret
 
