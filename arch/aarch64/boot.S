@@ -219,6 +219,7 @@ _start:
 
 231:
   bl shell_cmd_begin
+  ldr x0, =shell_line_buf
   cmp x1, #5
   b.lt 232f
   add x0, x0, #5    // skip "echo "
