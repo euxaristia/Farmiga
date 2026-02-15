@@ -196,7 +196,7 @@ _start:
 
 23:  // echo
   cmp x1, #4
-  b.ne 24f
+  b.lt 24f
   ldrb w2, [x0, #0]
   cmp w2, #'e'
   b.ne 24f
@@ -209,8 +209,22 @@ _start:
   ldrb w2, [x0, #3]
   cmp w2, #'o'
   b.ne 24f
+
+  // Check if it's exactly "echo" or "echo "
+  cmp x1, #4
+  b.eq 231f
+  ldrb w2, [x0, #4]
+  cmp w2, #' '
+  b.ne 24f
+
+231:
   bl shell_cmd_begin
-  ldr x0, =shell_echo_banner
+  cmp x1, #5
+  b.lt 232f
+  add x0, x0, #5    // skip "echo "
+  bl uart_puts
+232:
+  ldr x0, =shell_newline_banner
   bl uart_puts
   bl shell_prompt
   b 1b
