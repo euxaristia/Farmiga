@@ -223,7 +223,26 @@ _start:
   ldr x0, =shell_line_buf
   cmp x19, #5
   b.lt 232f
-  add x0, x0, #5    // skip "echo "
+  add x0, x0, #5    // x0 points to first char of arg
+
+  // Quote stripping: check if first and last chars are '"'
+  ldrb w2, [x0]
+  cmp w2, #'"'
+  b.ne 235f         // No leading quote
+
+  ldr x2, =shell_line_buf
+  add x2, x2, x19
+  sub x2, x2, #1    // x2 = pointer to last char
+  ldrb w3, [x2]
+  cmp w3, #'"'
+  b.ne 235f         // No trailing quote
+
+  // Both quotes found: strip them
+  add x0, x0, #1    // Skip leading quote
+  mov w3, #0
+  strb w3, [x2]     // Remove trailing quote (null terminate)
+
+235:
   bl uart_puts
 232:
   ldr x0, =shell_newline_banner
