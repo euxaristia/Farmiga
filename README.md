@@ -1,6 +1,9 @@
 # FarmigaKernel
 
 FarmigaKernel is a UNIX SysV-inspired hobby kernel project with:
+
+![Farmiga Shell Success](docs/images/shell_success.png)
+
 - `aarch64` as the primary boot target
 - `x86_64` as a planned second target
 - kernel logic authored in Coatl where practical
