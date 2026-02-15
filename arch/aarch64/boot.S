@@ -231,27 +231,52 @@ _start:
 
 24:  // mount
   cmp x1, #5
-  b.ne 25f
+  b.ne 245f
   ldrb w2, [x0, #0]
   cmp w2, #'m'
-  b.ne 25f
+  b.ne 245f
   ldrb w2, [x0, #1]
   cmp w2, #'o'
-  b.ne 25f
+  b.ne 245f
   ldrb w2, [x0, #2]
   cmp w2, #'u'
-  b.ne 25f
+  b.ne 245f
   ldrb w2, [x0, #3]
   cmp w2, #'n'
-  b.ne 25f
+  b.ne 245f
   ldrb w2, [x0, #4]
   cmp w2, #'t'
-  b.ne 25f
+  b.ne 245f
   bl shell_cmd_begin
   ldr x0, =shell_mount_banner
   bl uart_puts
   bl shell_prompt
   b 1b
+
+245: // hello
+  cmp x1, #5
+  b.ne 25f
+  ldrb w2, [x0, #0]
+  cmp w2, #'h'
+  b.ne 25f
+  ldrb w2, [x0, #1]
+  cmp w2, #'e'
+  b.ne 25f
+  ldrb w2, [x0, #2]
+  cmp w2, #'l'
+  b.ne 25f
+  ldrb w2, [x0, #3]
+  cmp w2, #'l'
+  b.ne 25f
+  ldrb w2, [x0, #4]
+  cmp w2, #'o'
+  b.ne 25f
+  bl shell_cmd_begin
+  ldr x0, =hello_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
 25:  // ps
   cmp x1, #2
   b.ne 27f
@@ -760,7 +785,9 @@ shell_prompt_banner:
 shell_newline_banner:
   .asciz "\r\n"
 shell_help_banner:
-  .asciz "FarmigaKernel: sh help [help,ls,cat,echo,mount,ps,exit]\r\n"
+  .asciz "FarmigaKernel: sh help [help,ls,cat,echo,mount,hello,ps,exit]\r\n"
+hello_banner:
+  .asciz "Hello from Farmiga OS!\r\n"
 shell_ls_banner:
   .asciz "FarmigaKernel: sh ls /\r\n"
 shell_cat_banner:
