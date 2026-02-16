@@ -106,6 +106,15 @@ _start:
   ldr x0, =boot_banner
   bl uart_puts
 
+  // Test link to Coatl kernel
+  mov w0, #20       // sys_getpid code
+  bl sys_route_id
+  cmp w0, #1        // Expecting route ID 1
+  b.ne 99f
+  ldr x0, =coatl_link_ok_banner
+  bl uart_puts
+99:
+
 .ifdef TRAP_TEST_SVC
   ldr x3, =trap_verbose_enabled
   mov x4, #1
@@ -781,6 +790,8 @@ clear_screen_banner:
   .asciz "\033[2J\033[H"
 boot_banner:
   .asciz "Farmiga: aarch64 stage0\r\n"
+coatl_link_ok_banner:
+  .asciz "Farmiga: Coatl kernel link established\r\n"
 .if TRAP_VERBOSE
 trap_banner:
   .asciz "Farmiga: el1 trap entered\r\n"
