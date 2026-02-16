@@ -64,6 +64,7 @@ BUILD_DIR := build
 A64_ELF := $(BUILD_DIR)/farmiga-aarch64.elf
 A64_IMG := $(BUILD_DIR)/farmiga-aarch64.img
 A64_BOOT_OBJ := $(BUILD_DIR)/boot_aarch64.o
+COATL_KERNEL_OBJ := $(BUILD_DIR)/sysv_kernel.o
 X86_ELF := $(BUILD_DIR)/farmiga-x86_64.elf
 X86_IMG := $(BUILD_DIR)/farmiga-x86_64.bin
 X86_BOOT_OBJ := $(BUILD_DIR)/boot_x86_64.o
@@ -102,8 +103,12 @@ $(BUILD_DIR):
 $(A64_BOOT_OBJ): arch/aarch64/boot.S | $(BUILD_DIR)
 	$(AS) -o $@ $<
 
-$(A64_ELF): $(A64_BOOT_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
-	$(LD) -T arch/aarch64/linker.ld -o $@ $(A64_BOOT_OBJ)
+$(COATL_KERNEL_OBJ): kernel/sysv_kernel.coatl | $(BUILD_DIR)
+	$(COATL) build $< -o $(BUILD_DIR)/sysv_kernel.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
+	$(AS) -o $@ $(BUILD_DIR)/sysv_kernel.s
+
+$(A64_ELF): $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
+	$(LD) -T arch/aarch64/linker.ld -o $@ $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ)
 
 $(A64_IMG): $(A64_ELF) | $(BUILD_DIR)
 	$(OBJCOPY) -O binary $< $@
