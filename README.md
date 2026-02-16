@@ -1,5 +1,7 @@
 # Farmiga
 
+> **Notice:** Possibly the first self-hosting 'Vibe-Native' stack: A kernel and shell written entirely in a custom programming language that was itself designed and implemented through vibe-coding, capable of compiling its own source.
+
 ![Farmiga Shell Success](docs/images/shell_success.png)
 
 Farmiga is a UNIX SysV-inspired hobby kernel project with:
