@@ -1,6 +1,6 @@
 # Farmiga
 
-> **Notice:** Possibly the first self-hosting 'Vibe-Native' stack: A kernel and shell written entirely in a custom programming language that was itself designed and implemented through vibe-coding, capable of compiling its own source.
+> **Notice:** Possibly the first 'Vibe-Native' stack: A kernel and shell written entirely in a custom programming language (Coatl) that was itself designed and implemented through vibe-coding.
 
 ![Farmiga Shell Success](docs/images/shell_success.png)
 
