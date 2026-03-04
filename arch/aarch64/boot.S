@@ -566,12 +566,158 @@ shell_readline:
   cmp w1, #127
   b.eq 35f
 
+  // Handle Tab (9)
+  cmp w1, #9
+  b.eq 40f
+
   cmp x4, #31
   b.ge 30b
   strb w1, [x0, x4]
   bl uart_putc
   add x4, x4, #1
   b 30b
+
+40: // Tab autocompletion
+  // Find start of last word
+  mov x5, x4 // x5 = current cursor
+41:
+  cbz x5, 42f
+  sub x5, x5, #1
+  ldrb w6, [x0, x5]
+  cmp w6, #' '
+  b.eq 43f
+  b 41b
+42: // Word starts at beginning of buffer
+  mov x5, #0
+  b 44f
+43: // Word starts at x5 + 1
+  add x5, x5, #1
+44:
+  // Prefix is in shell_line_buf[x5..x4-1]
+  // We need a null-terminated copy of the prefix for str_startswith
+  sub sp, sp, #32
+  mov x7, #0
+45:
+  add x8, x5, x7
+  cmp x8, x4
+  b.ge 46f
+  ldrb w9, [x0, x8]
+  strb w9, [sp, x7]
+  add x7, x7, #1
+  b 45b
+46:
+  strb wzr, [sp, x7]
+  
+  // Search for matches
+  ldr x10, =completion_list
+  mov x11, #0 // match count
+  mov x12, #0 // last match ptr
+47:
+  ldr x13, [x10], #8
+  cbz x13, 48f
+  
+  mov x0, x13
+  mov x1, sp // prefix copy
+  bl str_startswith
+  cbz w0, 47b
+  
+  add x11, x11, #1
+  mov x12, x13
+  b 47b
+
+48:
+  add sp, sp, #32 // restore stack from prefix copy
+  
+  cbz x11, 30b // no matches, ignore tab
+  
+  cmp x11, #1
+  b.ne 60f // multiple matches, show menu
+
+  // Single match: x12 has the string
+  // Append missing part to buffer and echo it
+  mov x0, x12
+  bl strlen // x0 = total length
+  mov x13, x0
+  
+  // Calculate how many chars to append
+  sub x14, x4, x5 // prefix length
+  sub x15, x13, x14 // suffix length
+  cbz x15, 30b // already complete
+  
+  mov x16, #0
+49:
+  add x17, x14, x16
+  ldrb w18, [x12, x17]
+  ldr x0, =shell_line_buf
+  strb w18, [x0, x4]
+  mov w1, w18
+  bl uart_putc
+  add x4, x4, #1
+  add x16, x16, #1
+  cmp x16, x15
+  b.lt 49b
+  
+  ldr x0, =shell_line_buf // restore x0 for next loop
+  b 30b
+
+60: // Multiple matches: show menu (fish/zsh style)
+  // 1. Move to new line
+  ldr x0, =shell_newline_banner
+  bl uart_puts
+  
+  // 2. Print all matches
+  ldr x10, =completion_list
+61:
+  ldr x13, [x10], #8
+  cbz x13, 62f
+  
+  // Check if it's a match again (or we could have saved them)
+  // Using a simplified check for now: just print it if it starts with prefix
+  // But we need the prefix again... it was on the stack.
+  // Let's just re-calculate it or avoid multiple matches menu for the first pass?
+  // User asked for zsh style menu.
+  
+  // Re-push prefix for the loop
+  sub sp, sp, #32
+  mov x7, #0
+  ldr x0, =shell_line_buf
+65:
+  add x8, x5, x7
+  cmp x8, x4
+  b.ge 66f
+  ldrb w9, [x0, x8]
+  strb w9, [sp, x7]
+  add x7, x7, #1
+  b 65b
+66:
+  strb wzr, [sp, x7]
+
+  mov x0, x13
+  mov x1, sp
+  bl str_startswith
+  add sp, sp, #32
+  cbz w0, 61b
+  
+  // It's a match, print it
+  mov x0, x13
+  bl uart_puts
+  mov w1, #' '
+  bl uart_putc
+  b 61b
+
+62:
+  // 3. Restore prompt and current buffer
+  bl shell_cmd_begin
+  bl shell_prompt
+  ldr x0, =shell_line_buf
+  mov x16, #0
+63:
+  cmp x16, x4
+  b.ge 30b
+  ldrb w1, [x0, x16]
+  bl uart_putc
+  add x16, x16, #1
+  b 63b
 
 35: // Backspace handler
   cbz x4, 30b
@@ -611,6 +757,34 @@ strcmp:
   b 1b
 2:
   sub w0, w2, w3
+  ret
+
+// str_startswith(x0: str, x1: prefix) -> w0: 1 if matches, 0 if not
+str_startswith:
+1:
+  ldrb w2, [x1], #1
+  cbz w2, 3f // reached end of prefix, success
+  ldrb w3, [x0], #1
+  cmp w2, w3
+  b.ne 2f
+  b 1b
+2:
+  mov w0, #0
+  ret
+3:
+  mov w0, #1
+  ret
+
+// strlen(x0: str) -> x0: length
+strlen:
+  mov x1, #0
+1:
+  ldrb w2, [x0, x1]
+  cbz w2, 2f
+  add x1, x1, #1
+  b 1b
+2:
+  mov x0, x1
   ret
 
 .align 11
@@ -1020,6 +1194,34 @@ shell_unknown_banner:
   .asciz "Farmiga: sh unknown\r\n"
 shell_exit_banner:
   .asciz "Farmiga: sh exit\r\n"
+
+.align 3
+completion_list:
+  .quad str_help
+  .quad str_ls
+  .quad str_cat
+  .quad str_echo
+  .quad str_mount
+  .quad str_clear
+  .quad str_hello
+  .quad str_ps
+  .quad str_exit
+  .quad str_hello_txt
+  .quad str_bin
+  .quad str_etc
+  .quad str_bin_sh
+  .quad 0
+
+str_help: .asciz "help"
+str_ls:   .asciz "ls"
+str_cat:  .asciz "cat"
+str_echo: .asciz "echo"
+str_mount: .asciz "mount"
+str_clear: .asciz "clear"
+str_hello: .asciz "hello"
+// str_ps, str_exit already defined or similar
+str_ps:   .asciz "ps"
+str_exit: .asciz "exit"
 
 .section .bss
 .align 3
