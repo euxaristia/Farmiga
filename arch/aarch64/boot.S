@@ -222,7 +222,7 @@ _start:
   cmp w2, #'s'
   b.ne 22f
   bl shell_cmd_begin
-  ldr x0, =shell_ls_banner
+  ldr x0, =shell_ls_output
   bl uart_puts
   bl shell_prompt
   b 1b
@@ -240,23 +240,57 @@ _start:
   cmp w2, #'t'
   b.ne 23f
 
-  // If length > 3, check if it's "cat "
+  // If length == 3, it's "cat" with no args
   cmp x19, #3
   b.eq 221f
+  
+  // Must be "cat "
   ldrb w2, [x0, #3]
   cmp w2, #' '
   b.ne 23f
 
-  // cat with args: dynamically print the argument
+  // cat with args: check filename
+  add x21, x0, #4    // x21 = pointer to filename arg
+  
+  // Try "hello.txt"
+  mov x0, x21
+  ldr x1, =str_hello_txt
+  bl strcmp
+  cbz w0, 225f
+
+  // Try "sh"
+  mov x0, x21
+  ldr x1, =str_sh
+  bl strcmp
+  cbz w0, 226f
+
+  // Try "bin/sh"
+  mov x0, x21
+  ldr x1, =str_bin_sh
+  bl strcmp
+  cbz w0, 226f
+
+  // Not found
   bl shell_cmd_begin
-  ldr x0, =shell_cat_prefix
+  ldr x0, =shell_cat_not_found
   bl uart_puts
-  
-  ldr x0, =shell_line_buf
-  add x0, x0, #4    // x0 points to the argument after "cat "
+  mov x0, x21
   bl uart_puts
-  
   ldr x0, =shell_newline_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
+225: // cat hello.txt
+  bl shell_cmd_begin
+  ldr x0, =file_hello_content
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
+226: // cat sh
+  bl shell_cmd_begin
+  ldr x0, =file_sh_content
   bl uart_puts
   bl shell_prompt
   b 1b
@@ -527,6 +561,19 @@ uart_tx_drain:
   ldr w3, [x2, #UARTFR]
   and w3, w3, #TXFE
   cbz w3, 42b
+  ret
+
+// strcmp(x0: s1, x1: str2) -> w0: 0 if equal
+strcmp:
+1:
+  ldrb w2, [x0], #1
+  ldrb w3, [x1], #1
+  cmp w2, w3
+  b.ne 2f
+  cbz w2, 2f
+  b 1b
+2:
+  sub w0, w2, w3
   ret
 
 .align 11
@@ -904,10 +951,20 @@ shell_help_banner:
   .asciz "Farmiga: sh help [help,ls,cat,echo,mount,clear,hello,ps,exit]\r\n"
 hello_banner:
   .asciz "Hello from Farmiga OS!\r\n"
-shell_ls_banner:
-  .asciz "Farmiga: sh ls /\r\n"
-shell_cat_prefix:
-  .asciz "Farmiga: sh cat "
+shell_ls_output:
+  .asciz "bin\r\netc\r\nhello.txt\r\n"
+shell_cat_not_found:
+  .asciz "cat: file not found: "
+str_hello_txt:
+  .asciz "hello.txt"
+str_sh:
+  .asciz "sh"
+str_bin_sh:
+  .asciz "bin/sh"
+file_hello_content:
+  .asciz "This is a test file on the Farmiga mock filesystem.\r\nIt works!\r\n"
+file_sh_content:
+  .asciz "#!/bin/sh\r\necho \"Farmiga Shell starting...\"\r\n"
 shell_echo_banner:
   .asciz "Farmiga: sh echo ok\r\n"
 shell_mount_banner:
