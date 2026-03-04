@@ -247,11 +247,17 @@ _start:
   // Must be "cat "
   ldrb w2, [x0, #3]
   cmp w2, #' '
-  b.ne 23f
+  b.ne 227f
 
   // cat with args: check filename
   add x21, x0, #4    // x21 = pointer to filename arg
   
+  // Null terminate the line for strcmp
+  ldr x2, =shell_line_buf
+  add x2, x2, x19
+  mov w3, #0
+  strb w3, [x2]
+
   // Try "hello.txt"
   mov x0, x21
   ldr x1, =str_hello_txt
@@ -294,6 +300,10 @@ _start:
   bl uart_puts
   bl shell_prompt
   b 1b
+
+227: // command didn't match cat with args, restore x0 and continue
+  ldr x0, =shell_line_buf
+  b 23f
 
 221: // cat with no args: loop and echo
   bl shell_cmd_begin
