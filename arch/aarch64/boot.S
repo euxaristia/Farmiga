@@ -244,10 +244,14 @@ _start:
   cmp x19, #3
   b.eq 221f
   
-  // Must be "cat "
+  // Must be "cat " (check for space)
   ldrb w2, [x0, #3]
   cmp w2, #' '
   b.ne 227f
+
+  // If length is 4, it's just "cat ", treat like "cat" (loop)
+  cmp x19, #4
+  b.eq 221f
 
   // cat with args: check filename
   add x21, x0, #4    // x21 = pointer to filename arg
