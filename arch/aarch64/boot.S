@@ -268,6 +268,18 @@ _start:
   bl strcmp
   cbz w0, 225f
 
+  // Try "bin"
+  mov x0, x21
+  ldr x1, =str_bin
+  bl strcmp
+  cbz w0, 228f
+
+  // Try "etc"
+  mov x0, x21
+  ldr x1, =str_etc
+  bl strcmp
+  cbz w0, 228f
+
   // Try "sh"
   mov x0, x21
   ldr x1, =str_sh
@@ -298,9 +310,20 @@ _start:
   bl shell_prompt
   b 1b
 
-226: // cat sh
+226: // cat sh or bin/sh
   bl shell_cmd_begin
   ldr x0, =file_sh_content
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
+228: // cat directory
+  bl shell_cmd_begin
+  ldr x0, =shell_cat_prefix
+  bl uart_puts
+  mov x0, x21
+  bl uart_puts
+  ldr x0, =shell_cat_is_dir
   bl uart_puts
   bl shell_prompt
   b 1b
@@ -967,10 +990,18 @@ hello_banner:
   .asciz "Hello from Farmiga OS!\r\n"
 shell_ls_output:
   .asciz "bin\r\netc\r\nhello.txt\r\n"
+shell_cat_prefix:
+  .asciz "cat: "
 shell_cat_not_found:
   .asciz "cat: file not found: "
+shell_cat_is_dir:
+  .asciz ": Is a directory\r\n"
 str_hello_txt:
   .asciz "hello.txt"
+str_bin:
+  .asciz "bin"
+str_etc:
+  .asciz "etc"
 str_sh:
   .asciz "sh"
 str_bin_sh:
