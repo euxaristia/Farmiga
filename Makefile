@@ -71,7 +71,7 @@ X86_BOOT_OBJ := $(BUILD_DIR)/boot_x86_64.o
 COATL_SMOKE_BIN := $(BUILD_DIR)/sysv_kernel_smoke
 COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
-.PHONY: all validate toolchain-aarch64 toolchain-x86_64 toolchain-preflight aarch64 x86_64 run-aarch64 run-x86_64-loader test-aarch64 test-x86_64-build test-x86_64-qemu-smoke clean coatl-sysv-smoke
+.PHONY: all validate toolchain-aarch64 toolchain-x86_64 toolchain-preflight aarch64 x86_64 run-aarch64 run-x86_64-loader test-aarch64 test-x86_64-build test-x86_64-qemu-smoke clean coatl-sysv-smoke qemu
 .PHONY: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk
 .PHONY: test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity
 .PHONY: gen-coatl-trap-abi-constants test-coatl-generated-trap-abi-sync
@@ -79,6 +79,13 @@ COATL_USERLAND_SMOKE_BIN := $(BUILD_DIR)/minish_smoke
 
 all: aarch64
 validate: toolchain-preflight coatl-sysv-smoke coatl-userland-smoke test-x86_64-build test-aarch64 test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-svc-matrix test-aarch64-brk test-aarch64-trap-abi test-aarch64-trap-runtime test-aarch64-trap-fixture test-coatl-trap-fixture-parity test-coatl-generated-trap-abi-sync
+
+qemu: aarch64
+	@echo "Starting Farmiga OS..."
+	@echo "---------------------------------------------------"
+	@echo "PRO TIP: If the QEMU window shows '(qemu)', go to 'View' -> 'serial0'."
+	@echo "---------------------------------------------------"
+	$(QEMU) -machine virt -cpu cortex-a72 -kernel $(A64_ELF) -serial vc -monitor stdio
 
 toolchain-aarch64:
 	@command -v $(AS) >/dev/null 2>&1 || { echo "missing: $(AS)"; echo "install aarch64 cross binutils or set CROSS=<prefix> (example: CROSS=aarch64-linux-gnu-)"; exit 1; }
@@ -103,9 +110,9 @@ $(BUILD_DIR):
 $(A64_BOOT_OBJ): arch/aarch64/boot.S | $(BUILD_DIR)
 	$(AS) -o $@ $<
 
-$(COATL_KERNEL_OBJ): kernel/sysv_kernel.coatl | $(BUILD_DIR)
-	$(COATL) build $< -o $(BUILD_DIR)/sysv_kernel.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
-	$(AS) -o $@ $(BUILD_DIR)/sysv_kernel.s
+$(COATL_KERNEL_OBJ): kernel/sysv_lib.coatl | $(BUILD_DIR)
+	$(COATL) build $< -o $(BUILD_DIR)/sysv_lib.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
+	$(AS) -o $@ $(BUILD_DIR)/sysv_lib.s
 
 $(A64_ELF): $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
 	$(LD) -T arch/aarch64/linker.ld -o $@ $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ)
