@@ -229,7 +229,7 @@ _start:
 
 22:  // cat
   cmp x19, #3
-  b.ne 23f
+  b.lt 23f
   ldrb w2, [x0, #0]
   cmp w2, #'c'
   b.ne 23f
@@ -239,9 +239,42 @@ _start:
   ldrb w2, [x0, #2]
   cmp w2, #'t'
   b.ne 23f
+
+  // If length > 3, check if it's "cat "
+  cmp x19, #3
+  b.eq 221f
+  ldrb w2, [x0, #3]
+  cmp w2, #' '
+  b.ne 23f
+
+  // cat with args: just print banner for now
   bl shell_cmd_begin
   ldr x0, =shell_cat_banner
   bl uart_puts
+  bl shell_prompt
+  b 1b
+
+221: // cat with no args: loop and echo
+  bl shell_cmd_begin
+  bl uart_mode_tx_rx
+222:
+  bl uart_getc_blocking
+  // Check for Ctrl-D (EOT, ASCII 4)
+  cmp w1, #4
+  b.eq 223f
+  
+  // Echo the character
+  mov w2, w1 // save char
+  bl uart_putc
+  cmp w2, #'\r'
+  b.ne 222b
+  mov w1, #'\n'
+  bl uart_putc
+  b 222b
+
+223:
+  bl uart_mode_tx_only
+  bl shell_cmd_begin
   bl shell_prompt
   b 1b
 
