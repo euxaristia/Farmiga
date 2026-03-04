@@ -148,6 +148,29 @@ _start:
   cmp x19, #0
   b.eq 26f
 
+  cmp x19, #5
+  b.ne 10f
+  ldrb w2, [x0, #0]
+  cmp w2, #'c'
+  b.ne 10f
+  ldrb w2, [x0, #1]
+  cmp w2, #'l'
+  b.ne 10f
+  ldrb w2, [x0, #2]
+  cmp w2, #'e'
+  b.ne 10f
+  ldrb w2, [x0, #3]
+  cmp w2, #'a'
+  b.ne 10f
+  ldrb w2, [x0, #4]
+  cmp w2, #'r'
+  b.ne 10f
+  ldr x0, =clear_screen_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
+10:
   cmp x19, #4
   b.ne 20f
   ldrb w2, [x0, #0]
@@ -835,7 +858,7 @@ shell_prompt_banner:
 shell_newline_banner:
   .asciz "\r\n"
 shell_help_banner:
-  .asciz "Farmiga: sh help [help,ls,cat,echo,mount,hello,ps,exit]\r\n"
+  .asciz "Farmiga: sh help [help,ls,cat,echo,mount,clear,hello,ps,exit]\r\n"
 hello_banner:
   .asciz "Hello from Farmiga OS!\r\n"
 shell_ls_banner:
