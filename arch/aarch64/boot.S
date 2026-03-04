@@ -259,6 +259,9 @@ _start:
   bl uart_mode_tx_rx
 222:
   bl uart_getc_blocking
+  // Check for Ctrl-C (ETX, ASCII 3)
+  cmp w1, #3
+  b.eq 223f
   // Check for Ctrl-D (EOT, ASCII 4)
   cmp w1, #4
   b.eq 223f
