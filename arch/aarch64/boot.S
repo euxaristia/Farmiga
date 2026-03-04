@@ -247,9 +247,16 @@ _start:
   cmp w2, #' '
   b.ne 23f
 
-  // cat with args: just print banner for now
+  // cat with args: dynamically print the argument
   bl shell_cmd_begin
-  ldr x0, =shell_cat_banner
+  ldr x0, =shell_cat_prefix
+  bl uart_puts
+  
+  ldr x0, =shell_line_buf
+  add x0, x0, #4    // x0 points to the argument after "cat "
+  bl uart_puts
+  
+  ldr x0, =shell_newline_banner
   bl uart_puts
   bl shell_prompt
   b 1b
@@ -899,8 +906,8 @@ hello_banner:
   .asciz "Hello from Farmiga OS!\r\n"
 shell_ls_banner:
   .asciz "Farmiga: sh ls /\r\n"
-shell_cat_banner:
-  .asciz "Farmiga: sh cat /bin/sh\r\n"
+shell_cat_prefix:
+  .asciz "Farmiga: sh cat "
 shell_echo_banner:
   .asciz "Farmiga: sh echo ok\r\n"
 shell_mount_banner:
