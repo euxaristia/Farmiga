@@ -594,6 +594,10 @@ shell_readline:
   add x5, x5, #1
 44:
   // Prefix is in shell_line_buf[x5..x4-1]
+  // Ignore if prefix is empty
+  cmp x5, x4
+  b.ge 30b
+
   // We need a null-terminated copy of the prefix for str_startswith
   sub sp, sp, #32
   mov x7, #0
@@ -609,7 +613,13 @@ shell_readline:
   strb wzr, [sp, x7]
   
   // Search for matches
-  ldr x10, =completion_list
+  cmp x5, #0
+  beq 470f
+  ldr x10, =file_list
+  b 471f
+470:
+  ldr x10, =command_list
+471:
   mov x11, #0 // match count
   mov x12, #0 // last match ptr
 47:
@@ -627,6 +637,7 @@ shell_readline:
 
 48:
   add sp, sp, #32 // restore stack from prefix copy
+  ldr x0, =shell_line_buf // RESTORE x0
   
   cbz x11, 30b // no matches, ignore tab
   
@@ -642,13 +653,13 @@ shell_readline:
   // Calculate how many chars to append
   sub x14, x4, x5 // prefix length
   sub x15, x13, x14 // suffix length
+  ldr x0, =shell_line_buf // RESTORE x0 again
   cbz x15, 30b // already complete
   
   mov x16, #0
 49:
   add x17, x14, x16
   ldrb w18, [x12, x17]
-  ldr x0, =shell_line_buf
   strb w18, [x0, x4]
   mov w1, w18
   bl uart_putc
@@ -657,7 +668,6 @@ shell_readline:
   cmp x16, x15
   b.lt 49b
   
-  ldr x0, =shell_line_buf // restore x0 for next loop
   b 30b
 
 60: // Multiple matches: show menu (fish/zsh style)
@@ -666,16 +676,15 @@ shell_readline:
   bl uart_puts
   
   // 2. Print all matches
-  ldr x10, =completion_list
-61:
+  cmp x5, #0
+  beq 610f
+  ldr x10, =file_list
+  b 611f
+610:
+  ldr x10, =command_list
+611:
   ldr x13, [x10], #8
   cbz x13, 62f
-  
-  // Check if it's a match again (or we could have saved them)
-  // Using a simplified check for now: just print it if it starts with prefix
-  // But we need the prefix again... it was on the stack.
-  // Let's just re-calculate it or avoid multiple matches menu for the first pass?
-  // User asked for zsh style menu.
   
   // Re-push prefix for the loop
   sub sp, sp, #32
@@ -696,14 +705,14 @@ shell_readline:
   mov x1, sp
   bl str_startswith
   add sp, sp, #32
-  cbz w0, 61b
+  cbz w0, 611b
   
   // It's a match, print it
   mov x0, x13
   bl uart_puts
   mov w1, #' '
   bl uart_putc
-  b 61b
+  b 611b
 
 62:
   // 3. Restore prompt and current buffer
@@ -1196,7 +1205,7 @@ shell_exit_banner:
   .asciz "Farmiga: sh exit\r\n"
 
 .align 3
-completion_list:
+command_list:
   .quad str_help
   .quad str_ls
   .quad str_cat
@@ -1206,6 +1215,10 @@ completion_list:
   .quad str_hello
   .quad str_ps
   .quad str_exit
+  .quad 0
+
+.align 3
+file_list:
   .quad str_hello_txt
   .quad str_bin
   .quad str_etc
