@@ -570,11 +570,23 @@ shell_readline:
   cmp w1, #9
   b.eq 40f
 
+  // Handle Ctrl+C (3)
+  cmp w1, #3
+  b.eq 38f
+
   cmp x4, #31
   b.ge 30b
   strb w1, [x0, x4]
   bl uart_putc
   add x4, x4, #1
+  b 30b
+
+38: // Ctrl+C handler
+  mov x4, #0 // clear buffer length
+  ldr x0, =shell_ctrl_c_banner
+  bl uart_puts
+  bl shell_prompt
+  ldr x0, =shell_line_buf // restore x0
   b 30b
 
 40: // Tab autocompletion
@@ -1167,6 +1179,8 @@ shell_prompt_banner:
   .asciz "farmiga-sh> "
 shell_newline_banner:
   .asciz "\r\n"
+shell_ctrl_c_banner:
+  .asciz "^C\r\n"
 shell_help_banner:
   .asciz "Farmiga: sh help [help,ls,cat,echo,mount,clear,hello,ps,exit]\r\n"
 hello_banner:
