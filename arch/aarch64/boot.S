@@ -582,10 +582,20 @@ shell_readline:
   b 30b
 
 38: // Ctrl+C handler
+  // Erase current line: for each char in x4, print BS, Space, BS
+  cbz x4, 382f
+  mov x5, x4
+381:
+  mov w1, #8
+  bl uart_putc
+  mov w1, #' '
+  bl uart_putc
+  mov w1, #8
+  bl uart_putc
+  sub x5, x5, #1
+  cbnz x5, 381b
+382:
   mov x4, #0 // clear buffer length
-  ldr x0, =shell_ctrl_c_banner
-  bl uart_puts
-  bl shell_prompt
   ldr x0, =shell_line_buf // restore x0
   b 30b
 
