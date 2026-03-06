@@ -95,7 +95,8 @@ $(A64_BOOT_OBJ): arch/aarch64/boot.S | $(BUILD_DIR)
 	$(AS) -o $@ $<
 
 $(COATL_KERNEL_OBJ): kernel/sysv_lib.coatl | $(BUILD_DIR)
-	$(COATL) build $< -o $(BUILD_DIR)/sysv_lib.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
+	(cat kernel/sysv_lib.coatl; echo "fn main() returns i32 { return 0; }") > $(BUILD_DIR)/sysv_kernel_with_main.coatl
+	$(COATL) build $(BUILD_DIR)/sysv_kernel_with_main.coatl -o $(BUILD_DIR)/sysv_lib.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
 	$(AS) -o $@ $(BUILD_DIR)/sysv_lib.s
 
 $(A64_ELF): $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
@@ -421,7 +422,7 @@ test-aarch64-brk: toolchain-aarch64 | $(BUILD_DIR)
 	echo "QEMU brk trap check passed"
 
 test-aarch64-trap-abi: toolchain-aarch64 $(A64_ELF)
-	@NM=$(NM) bash scripts/check_trap_abi_contract.sh $(A64_ELF) kernel/sysv_kernel.coatl
+	@NM=$(NM) bash scripts/check_trap_abi_contract.sh $(A64_ELF) $(BUILD_DIR)/sysv_kernel_with_main.coatl
 
 test-aarch64-trap-runtime: test-aarch64-svc test-aarch64-svc-args test-aarch64-svc-ret test-aarch64-svc-unknown test-aarch64-brk
 	@set -eu; \
@@ -455,21 +456,23 @@ test-aarch64-trap-fixture: toolchain-aarch64 $(A64_ELF) | $(BUILD_DIR)
 	echo "QEMU trap fixture contract check passed"
 
 test-coatl-trap-fixture-parity: test-aarch64-trap-fixture
-	@bash scripts/check_trap_fixture_parity.sh $(BUILD_DIR)/trap_snapshot_fixture.env kernel/sysv_kernel.coatl
+	@bash scripts/check_trap_fixture_parity.sh $(BUILD_DIR)/trap_snapshot_fixture.env $(BUILD_DIR)/sysv_kernel_with_main.coatl
 
 gen-coatl-trap-abi-constants: test-aarch64-trap-fixture | $(BUILD_DIR)
 	@bash scripts/gen_coatl_trap_abi_constants.sh $(BUILD_DIR)/trap_snapshot_fixture.env $(BUILD_DIR)/trap_abi_generated.coatl
 
 test-coatl-generated-trap-abi-sync: gen-coatl-trap-abi-constants
-	@bash scripts/check_coatl_generated_constants_sync.sh $(BUILD_DIR)/trap_abi_generated.coatl kernel/sysv_kernel.coatl
+	@bash scripts/check_coatl_generated_constants_sync.sh $(BUILD_DIR)/trap_abi_generated.coatl $(BUILD_DIR)/sysv_kernel_with_main.coatl
 
-coatl-sysv-smoke: kernel/sysv_kernel.coatl | $(BUILD_DIR)
-	$(COATL) build kernel/sysv_kernel.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)
+coatl-sysv-smoke: kernel/sysv_lib.coatl tests/sysv_kernel_smoke.coatl | $(BUILD_DIR)
+	cat kernel/sysv_lib.coatl tests/sysv_kernel_smoke.coatl > $(BUILD_DIR)/sysv_kernel_full.coatl
+	$(COATL) build $(BUILD_DIR)/sysv_kernel_full.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_SMOKE_BIN)
 	$(COATL_SMOKE_BIN)
 	@echo "coatl sysv smoke exit=$$?"
 
-coatl-userland-smoke: userland/minish.coatl | $(BUILD_DIR)
-	$(COATL) build userland/minish.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_USERLAND_SMOKE_BIN)
+coatl-userland-smoke: userland/minish.coatl tests/minish_smoke.coatl | $(BUILD_DIR)
+	cat userland/minish.coatl tests/minish_smoke.coatl > $(BUILD_DIR)/minish_full.coatl
+	$(COATL) build $(BUILD_DIR)/minish_full.coatl --arch=$(COATL_ARCH) --toolchain=$(COATL_TOOLCHAIN) -o $(COATL_USERLAND_SMOKE_BIN)
 	$(COATL_USERLAND_SMOKE_BIN)
 	@echo "coatl userland smoke exit=$$?"
 

@@ -1,0 +1,179 @@
+fn main() returns i32 {
+  let init: Process = proc_new(1, 0, 1);
+  let sh: Process = proc_new(2, 1, 1);
+  let k0: Kernel = kernel_new();
+  let _k1: Kernel = rq_push(k0, sh.pid);
+  let k1: Kernel = kernel_make(1, 2, 1, 2, 0, 0, 0);
+  let next_pid: i32 = sched_next(k1);
+
+  let p0: i32 = sys_dispatch(20, 0, 0, 0, init);
+  let p1: i32 = sys_dispatch(64, 0, 0, 0, sh);
+  let w0: i32 = sys_dispatch(4, 1, 4096, 16, init);
+  let e0: i32 = sys_dispatch(1, 0, 0, 0, init);
+  let bad: i32 = sys_dispatch(999, 0, 0, 0, init);
+
+  let ticked: Process = proc_tick(init);
+  let z: Process = proc_mark_zombie(sh, 7);
+  let k2: Kernel = rq_pop(k1);
+  let f_parent: i32 = sys_fork_parent_ret(k2);
+  let f_child: i32 = sys_fork_child_ret();
+  let child: Process = proc_new(f_parent, init.pid, 1);
+  let k3: Kernel = sys_fork_kernel(k2);
+  let child_z: Process = proc_mark_zombie(child, 0);
+  let waited: i32 = sys_waitpid_model(init, child_z);
+  let tf0: TrapFrame = trapframe_make(20, 0, 0, 0);
+  let tf0_ret: i32 = sys_dispatch_tf_ret(tf0, init);
+  let tf_bad_ret: i32 = sys_dispatch_tf_ret(trapframe_make(999, 0, 0, 0), init);
+  let root: VfsNode = vfs_make_root();
+  let m0: Mount = mount_make_root();
+  let init_task0: UserTask = init_task_make(init.pid);
+  let init_task1: UserTask = init_task_step(init_task0);
+  let cpu0: CpuContext = cpu_context_el1_boot();
+  let fs0: FsImage = fsimage_make_base();
+  let mt0: MountTable = mounttable_new();
+  let mt1: MountTable = mounttable_mount_root(mt0, fs0);
+  let sh_task: UserTask = init_spawn_from_fs(fs0, mt1, 2);
+  let sh_task_unmounted: UserTask = init_spawn_from_fs(fs0, mt0, 2);
+  let cpu1: CpuContext = cpu_enter_user(cpu0, sh_task);
+  let pt0: ProcTable = proctable_seed(init.pid, sh_task.pid);
+  let pt1: ProcTable = proctable_apply_fork(pt0, 3);
+  let pt2: ProcTable = proctable_apply_fork(pt1, 4);
+  let pt3: ProcTable = proctable_apply_fork(pt2, 5);
+  let ls_n: i32 = shell_cmd_ls(fs0, mt1);
+  let ls_unmounted: i32 = shell_cmd_ls(fs0, mt0);
+  let cat_n: i32 = shell_cmd_cat(fs0, mt1, 702);
+  let cat_bad: i32 = shell_cmd_cat(fs0, mt1, 404);
+  let cat_unmounted: i32 = shell_cmd_cat(fs0, mt0, 702);
+  let mnt_rc: i32 = shell_cmd_mount(fs0);
+  let mt2: MountTable = shell_cmd_mount_apply(fs0, mt0);
+  let mt3: MountTable = shell_cmd_mount_apply(fs0, mt2);
+  let ps_n: i32 = shell_cmd_ps(pt0);
+  let ps_unmounted: i32 = shell_cmd_ps_with_mount(pt0, mt0);
+  let ps_mounted: i32 = shell_cmd_ps_with_mount(pt0, mt1);
+  let echo_n: i32 = shell_cmd_echo(11);
+  let echo_bad: i32 = shell_cmd_echo(0 - 1);
+  let ev_sys: TrapEvent = trap_event_make(1, 0, 0, 0, 0, 20);
+  let ev_irq: TrapEvent = trap_event_make(2, 0, 0, 0, 0, 20);
+  let routed_no: i32 = trap_route_syscall_no(ev_sys, 20);
+  let routed_bad: i32 = trap_route_syscall_no(ev_irq, 20);
+  let routed_ret: i32 = sys_dispatch(routed_no, 0, 0, 0, init);
+  let route_getpid: i32 = sys_route_id(20);
+  let route_getppid: i32 = sys_route_id(64);
+  let route_exit: i32 = sys_route_id(1);
+  let route_write: i32 = sys_route_id(4);
+  let route_unknown: i32 = sys_route_id(999);
+  let snap_sys: TrapSnapshot = trap_snapshot_make(1, 0x54000000, 0x40081000, 0x3c5, 20, 11, 12, 13, 1);
+  let snap_irq: TrapSnapshot = trap_snapshot_make(2, 0, 0x40081000, 0x3c5, 20, 21, 22, 23, 255);
+  let slots_sys: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081000, 0x3c5, 20, 11, 12, 13, 1);
+  let slots_write: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081040, 0x3c5, 4, 1, 4096, 16, 4);
+  let slots_bad: TrapSnapshotSlots = trap_snapshot_slots_make(7, 1, 0x54000000, 0x40081040, 0x3c5, 999, 0, 0, 0, 255);
+  let snap_from_slots: TrapSnapshot = trap_snapshot_from_slots(slots_sys);
+  let slots_write_ret: i32 = sys_dispatch_slots_ret(slots_write, init);
+  let slots_bad_ret: i32 = sys_dispatch_slots_ret(slots_bad, init);
+  let ev_from_snap_sys: TrapEvent = trap_snapshot_to_event(snap_sys);
+  let ev_from_snap_irq: TrapEvent = trap_snapshot_to_event(snap_irq);
+  let _snap_route_sys: i32 = trap_snapshot_route_id(snap_sys);
+  let _slot_count: i32 = trap_snapshot_slot_load(slots_sys, trap_snapshot_abi_off_count());
+  let slot_x0: i32 = trap_snapshot_slot_load(slots_sys, trap_snapshot_abi_off_x0());
+  let slot_x1: i32 = trap_snapshot_slot_load(slots_sys, trap_snapshot_abi_off_x1());
+  let slot_x2: i32 = trap_snapshot_slot_load(slots_sys, trap_snapshot_abi_off_x2());
+  let slot_route: i32 = trap_snapshot_slot_load(slots_sys, trap_snapshot_abi_off_route());
+  let _slot_bad: i32 = trap_snapshot_slot_load(slots_sys, 12345);
+  let abi_size: i32 = trap_snapshot_abi_size();
+  let abi_off0: i32 = trap_snapshot_abi_off_count();
+  let abi_off1: i32 = trap_snapshot_abi_off_kind();
+  let abi_off2: i32 = trap_snapshot_abi_off_esr();
+  let abi_off3: i32 = trap_snapshot_abi_off_elr();
+  let abi_off4: i32 = trap_snapshot_abi_off_spsr();
+  let abi_off5: i32 = trap_snapshot_abi_off_x8();
+  let abi_off6: i32 = trap_snapshot_abi_off_x0();
+  let abi_off7: i32 = trap_snapshot_abi_off_x1();
+  let abi_off8: i32 = trap_snapshot_abi_off_x2();
+  let abi_off9: i32 = trap_snapshot_abi_off_route();
+
+  if (p0 != 1) { return 11; }
+  if (p1 != 1) { return 12; }
+  if (next_pid < 0) { return 13; }
+  if (w0 != 16) { return 14; }
+  if (e0 != 0) { return 15; }
+  if (bad != (0 - 38)) { return 16; }
+  if (ticked.ticks < 0) { return 17; }
+  if (z.state < 0) { return 18; }
+  if (z.exit_code < 0) { return 19; }
+  if (k2.run_count < 0) { return 20; }
+  if (f_parent <= 1) { return 23; }
+  if (f_child != 0) { return 24; }
+  if (child.ppid != init.pid) { return 25; }
+  if (waited != child.pid) { return 26; }
+  if (sys_waitpid_model(sh, child) != (0 - 10)) { return 27; }
+  if (k3.next_pid != (f_parent + 1)) { return 28; }
+  if (tf0_ret != init.pid) { return 29; }
+  if (tf_bad_ret != (0 - 38)) { return 30; }
+  if (root.ino != 1) { return 31; }
+  if (vfs_lookup_root(47) != 1) { return 32; }
+  if (vfs_lookup_root(999) != (0 - 2)) { return 33; }
+  if (m0.root_ino != root.ino) { return 34; }
+  if (mounttable_count(mt0) != 0) { return 85; }
+  if (mounttable_count(mt1) != 1) { return 86; }
+  if (cpu0.el < 0) { return 87; }
+  if (cpu1.el < 0) { return 88; }
+  if (cpu1.pc < 0) { return 89; }
+  if (init_task0.pid != init.pid) { return 35; }
+  if (init_task1.state < 0) { return 36; }
+  if (trap_is_syscall(ev_sys) != 1) { return 37; }
+  if (trap_is_syscall(ev_irq) != 0) { return 38; }
+  if (routed_no != 20) { return 39; }
+  if (routed_bad != (0 - 38)) { return 40; }
+  if (routed_ret != init.pid) { return 41; }
+  if (route_getpid != 1) { return 55; }
+  if (route_getppid != 2) { return 56; }
+  if (route_exit != 3) { return 57; }
+  if (route_write != 4) { return 58; }
+  if (route_unknown != 255) { return 59; }
+  if (ev_from_snap_sys.kind < 0) { return 60; }
+  if (ev_from_snap_irq.kind < 0) { return 61; }
+  if (trap_route_syscall_no(ev_from_snap_sys, 20) < (0 - 38)) { return 62; }
+  if (slot_route < 0) { return 63; }
+  if (abi_size != 80) { return 65; }
+  if (abi_off0 != 0) { return 66; }
+  if (abi_off1 != 8) { return 67; }
+  if (abi_off2 != 16) { return 68; }
+  if (abi_off3 != 24) { return 69; }
+  if (abi_off4 != 32) { return 70; }
+  if (abi_off5 != 40) { return 71; }
+  if (abi_off6 != 48) { return 72; }
+  if (abi_off7 != 56) { return 73; }
+  if (abi_off8 != 64) { return 74; }
+  if (abi_off9 != 72) { return 75; }
+  if (slot_x0 < 0) { return 76; }
+  if (slot_x1 < 0) { return 77; }
+  if (slot_x2 < 0) { return 78; }
+  if (fs_lookup_ino(fs0, 47) != 1) { return 42; }
+  if (fs_lookup_ino(fs0, 702) != 3) { return 43; }
+  if (fs_lookup_ino(fs0, 404) != (0 - 2)) { return 44; }
+  if (sh_task.entry <= 0) { return 45; }
+  if (sh_task.pid != 2) { return 46; }
+  if (sh_task_unmounted.state < 0) { return 90; }
+  if (ls_n != 4) { return 47; }
+  if (ls_unmounted != 3) { return 97; }
+  if (cat_n != 96) { return 48; }
+  if (cat_bad != (0 - 2)) { return 49; }
+  if (cat_unmounted != (0 - 2)) { return 91; }
+  if (mnt_rc != 0) { return 50; }
+  if (mounttable_count(mt2) != 1) { return 92; }
+  if (mounttable_count(mt3) != 1) { return 93; }
+  if (pt1.count != 3) { return 94; }
+  if (pt2.count != 4) { return 95; }
+  if (pt3.count != 4) { return 96; }
+  if (ps_n != 2) { return 51; }
+  if (ps_unmounted != 2) { return 98; }
+  if (ps_mounted != 3) { return 99; }
+  if (echo_n != 11) { return 52; }
+  if (echo_bad != (0 - 22)) { return 53; }
+  if (sh_task.state < 0) { return 54; }
+
+  if (sys_write(0 - 1, 4096, 2) != (0 - 9)) { return 21; }
+  if (sys_write(1, 4096, 0 - 1) != (0 - 22)) { return 22; }
+
+  return 0;
+}

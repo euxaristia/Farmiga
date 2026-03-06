@@ -688,6 +688,3 @@ fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) returns i32 {
 fn sys_dispatch_tf_ret(tf: TrapFrame, cur: Process) returns i32 {
   return sys_dispatch(tf.syscall_no, tf.arg0, tf.arg1, tf.arg2, cur);
 }
-
-
-fn main() returns i32 { return 0; }

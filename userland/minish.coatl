@@ -117,36 +117,3 @@ fn init_run_once(st: InitState, cmd_id: i32, a0: i32, fs: FsView, proc_count: i3
     last_rc: rc
   };
 }
-
-fn main() returns i32 {
-  let fs0: FsView = fsview_default();
-  let _p0: ProcView = procview_make(1, 0, 1);
-  let _p1: ProcView = procview_make(2, 1, 1);
-  let proc_count: i32 = 2;
-
-  let i0: InitState = init_make(1);
-  let i1: InitState = init_launch_shell(i0, fs0);
-  let i6: InitState = init_run_once(i1, 5, 0, fs0, proc_count);
-  let rc_echo: i32 = sh_dispatch(1, 5, fs0, proc_count);
-  let rc_ls: i32 = sh_dispatch(2, 0, fs0, proc_count);
-  let rc_cat: i32 = sh_dispatch(3, 2, fs0, proc_count);
-  let rc_mount: i32 = sh_dispatch(4, 0, fs0, proc_count);
-  let rc_ps: i32 = sh_dispatch(5, 0, fs0, proc_count);
-  let rc_clear: i32 = sh_dispatch(6, 0, fs0, proc_count);
-  let bad: i32 = sh_dispatch(999, 0, fs0, proc_count);
-
-  if (i1.launched_shell != 1) { return 11; }
-  if (rc_echo != 5) { return 12; }
-  if (rc_ls != 3) { return 13; }
-  if (rc_cat != 96) { return 14; }
-  if (rc_mount != 0) { return 15; }
-  if (rc_ps != 2) { return 16; }
-  if (rc_clear != 1) { return 23; }
-  if (bad != (0 - 38)) { return 17; }
-  if (sh_cmd_echo(0 - 1) != (0 - 22)) { return 18; }
-  if (sh_cmd_cat(fs0.sh_ok, 404) != (0 - 2)) { return 19; }
-  if (sh_cmd_ps(0) != (0 - 3)) { return 21; }
-  if (i6.last_cmd < 0) { return 22; }
-
-  return 0;
-}
