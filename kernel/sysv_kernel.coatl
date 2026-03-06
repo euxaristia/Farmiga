@@ -1,21 +1,3 @@
-/*
- * Farmiga: SysV core model in Coatl
- * Copyright (C) 2026 euxaristia
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 struct Process {
   pid: i32,
   ppid: i32,
@@ -128,23 +110,23 @@ struct TrapSnapshotSlots {
   slot_route: i32
 }
 
-fn trap_snapshot_abi_size() -> i32 { return 80; }
-fn trap_snapshot_abi_off_count() -> i32 { return 0; }
-fn trap_snapshot_abi_off_kind() -> i32 { return 8; }
-fn trap_snapshot_abi_off_esr() -> i32 { return 16; }
-fn trap_snapshot_abi_off_elr() -> i32 { return 24; }
-fn trap_snapshot_abi_off_spsr() -> i32 { return 32; }
-fn trap_snapshot_abi_off_x8() -> i32 { return 40; }
-fn trap_snapshot_abi_off_x0() -> i32 { return 48; }
-fn trap_snapshot_abi_off_x1() -> i32 { return 56; }
-fn trap_snapshot_abi_off_x2() -> i32 { return 64; }
-fn trap_snapshot_abi_off_route() -> i32 { return 72; }
+fn trap_snapshot_abi_size() returns i32 { return 80; }
+fn trap_snapshot_abi_off_count() returns i32 { return 0; }
+fn trap_snapshot_abi_off_kind() returns i32 { return 8; }
+fn trap_snapshot_abi_off_esr() returns i32 { return 16; }
+fn trap_snapshot_abi_off_elr() returns i32 { return 24; }
+fn trap_snapshot_abi_off_spsr() returns i32 { return 32; }
+fn trap_snapshot_abi_off_x8() returns i32 { return 40; }
+fn trap_snapshot_abi_off_x0() returns i32 { return 48; }
+fn trap_snapshot_abi_off_x1() returns i32 { return 56; }
+fn trap_snapshot_abi_off_x2() returns i32 { return 64; }
+fn trap_snapshot_abi_off_route() returns i32 { return 72; }
 
-fn proc_new(pid: i32, ppid: i32, state: i32) -> Process {
+fn proc_new(pid: i32, ppid: i32, state: i32) returns Process {
   return Process { pid: pid, ppid: ppid, state: state, exit_code: 0, ticks: 0 };
 }
 
-fn kernel_new() -> Kernel {
+fn kernel_new() returns Kernel {
   return Kernel {
     current_pid: 1,
     next_pid: 2,
@@ -156,7 +138,7 @@ fn kernel_new() -> Kernel {
   };
 }
 
-fn kernel_make(cur: i32, next: i32, cnt: i32, r0: i32, r1: i32, r2: i32, r3: i32) -> Kernel {
+fn kernel_make(cur: i32, next: i32, cnt: i32, r0: i32, r1: i32, r2: i32, r3: i32) returns Kernel {
   return Kernel {
     current_pid: cur,
     next_pid: next,
@@ -168,7 +150,7 @@ fn kernel_make(cur: i32, next: i32, cnt: i32, r0: i32, r1: i32, r2: i32, r3: i32
   };
 }
 
-fn rq_push(k: Kernel, pid: i32) -> Kernel {
+fn rq_push(k: Kernel, pid: i32) returns Kernel {
   if (k.run_count == 0) {
     return kernel_make(k.current_pid, k.next_pid, 1, pid, k.run1, k.run2, k.run3);
   }
@@ -184,7 +166,7 @@ fn rq_push(k: Kernel, pid: i32) -> Kernel {
   return k;
 }
 
-fn rq_pop(k: Kernel) -> Kernel {
+fn rq_pop(k: Kernel) returns Kernel {
   if (k.run_count <= 0) {
     return k;
   }
@@ -200,22 +182,22 @@ fn rq_pop(k: Kernel) -> Kernel {
   return kernel_make(k.current_pid, k.next_pid, 3, k.run1, k.run2, k.run3, 0);
 }
 
-fn sched_next(k: Kernel) -> i32 {
+fn sched_next(k: Kernel) returns i32 {
   if (k.run_count <= 0) {
     return k.current_pid;
   }
   return k.run0;
 }
 
-fn sys_getpid(p: Process) -> i32 {
+fn sys_getpid(p: Process) returns i32 {
   return p.pid;
 }
 
-fn sys_getppid(p: Process) -> i32 {
+fn sys_getppid(p: Process) returns i32 {
   return p.ppid;
 }
 
-fn sys_exit(mut_code: i32) -> i32 {
+fn sys_exit(mut_code: i32) returns i32 {
   let code: i32 = mut_code;
   if (code < 0) {
     return 1;
@@ -223,7 +205,7 @@ fn sys_exit(mut_code: i32) -> i32 {
   return 0;
 }
 
-fn sys_write(fd: i32, ptr: i32, len: i32) -> i32 {
+fn sys_write(fd: i32, ptr: i32, len: i32) returns i32 {
   let _ptr: i32 = ptr;
   if (fd < 0) {
     return 0 - 9;
@@ -234,7 +216,7 @@ fn sys_write(fd: i32, ptr: i32, len: i32) -> i32 {
   return len;
 }
 
-fn proc_tick(p: Process) -> Process {
+fn proc_tick(p: Process) returns Process {
   return Process {
     pid: p.pid,
     ppid: p.ppid,
@@ -244,7 +226,7 @@ fn proc_tick(p: Process) -> Process {
   };
 }
 
-fn proc_mark_zombie(p: Process, code: i32) -> Process {
+fn proc_mark_zombie(p: Process, code: i32) returns Process {
   return Process {
     pid: p.pid,
     ppid: p.ppid,
@@ -254,28 +236,28 @@ fn proc_mark_zombie(p: Process, code: i32) -> Process {
   };
 }
 
-fn sys_fork_parent_ret(k: Kernel) -> i32 {
+fn sys_fork_parent_ret(k: Kernel) returns i32 {
   return k.next_pid;
 }
 
-fn sys_fork_child_ret() -> i32 {
+fn sys_fork_child_ret() returns i32 {
   return 0;
 }
 
-fn sys_fork_kernel(k: Kernel) -> Kernel {
+fn sys_fork_kernel(k: Kernel) returns Kernel {
   let child_pid: i32 = k.next_pid;
   let nk0: Kernel = kernel_make(k.current_pid, child_pid + 1, k.run_count, k.run0, k.run1, k.run2, k.run3);
   return rq_push(nk0, child_pid);
 }
 
-fn sys_waitpid_model(parent: Process, child: Process) -> i32 {
+fn sys_waitpid_model(parent: Process, child: Process) returns i32 {
   if (child.ppid != parent.pid) {
     return 0 - 10;
   }
   return child.pid;
 }
 
-fn trapframe_make(no: i32, a0: i32, a1: i32, a2: i32) -> TrapFrame {
+fn trapframe_make(no: i32, a0: i32, a1: i32, a2: i32) returns TrapFrame {
   return TrapFrame {
     syscall_no: no,
     arg0: a0,
@@ -285,7 +267,7 @@ fn trapframe_make(no: i32, a0: i32, a1: i32, a2: i32) -> TrapFrame {
   };
 }
 
-fn vfs_make_root() -> VfsNode {
+fn vfs_make_root() returns VfsNode {
   return VfsNode {
     ino: 1,
     kind: 1,
@@ -293,14 +275,14 @@ fn vfs_make_root() -> VfsNode {
   };
 }
 
-fn vfs_lookup_root(path_hash: i32) -> i32 {
+fn vfs_lookup_root(path_hash: i32) returns i32 {
   if (path_hash == 47) {
     return 1;
   }
   return 0 - 2;
 }
 
-fn mount_make_root() -> Mount {
+fn mount_make_root() returns Mount {
   return Mount {
     mnt_id: 1,
     root_ino: 1,
@@ -308,7 +290,7 @@ fn mount_make_root() -> Mount {
   };
 }
 
-fn mounttable_new() -> MountTable {
+fn mounttable_new() returns MountTable {
   return MountTable {
     count: 0,
     root_mnt: 0,
@@ -316,7 +298,7 @@ fn mounttable_new() -> MountTable {
   };
 }
 
-fn mounttable_mount_root(mt: MountTable, fs: FsImage) -> MountTable {
+fn mounttable_mount_root(mt: MountTable, fs: FsImage) returns MountTable {
   let ok: i32 = fs_lookup_ino(fs, 703);
   if (ok < 0) {
     return mt;
@@ -328,11 +310,11 @@ fn mounttable_mount_root(mt: MountTable, fs: FsImage) -> MountTable {
   };
 }
 
-fn mounttable_count(mt: MountTable) -> i32 {
+fn mounttable_count(mt: MountTable) returns i32 {
   return mt.count;
 }
 
-fn init_task_make(pid: i32) -> UserTask {
+fn init_task_make(pid: i32) returns UserTask {
   return UserTask {
     pid: pid,
     entry: 4096,
@@ -341,7 +323,7 @@ fn init_task_make(pid: i32) -> UserTask {
   };
 }
 
-fn init_task_step(t: UserTask) -> UserTask {
+fn init_task_step(t: UserTask) returns UserTask {
   return UserTask {
     pid: t.pid,
     entry: t.entry,
@@ -350,7 +332,7 @@ fn init_task_step(t: UserTask) -> UserTask {
   };
 }
 
-fn cpu_context_el1_boot() -> CpuContext {
+fn cpu_context_el1_boot() returns CpuContext {
   return CpuContext {
     el: 1,
     sp: 65536,
@@ -358,7 +340,7 @@ fn cpu_context_el1_boot() -> CpuContext {
   };
 }
 
-fn cpu_enter_user(ctx: CpuContext, task: UserTask) -> CpuContext {
+fn cpu_enter_user(ctx: CpuContext, task: UserTask) returns CpuContext {
   let _el1_sp: i32 = ctx.sp;
   if (task.entry <= 0) {
     return ctx;
@@ -370,7 +352,7 @@ fn cpu_enter_user(ctx: CpuContext, task: UserTask) -> CpuContext {
   };
 }
 
-fn exec_image_make(entry: i32, text_size: i32, ok: i32) -> ExecImage {
+fn exec_image_make(entry: i32, text_size: i32, ok: i32) returns ExecImage {
   return ExecImage {
     entry: entry,
     text_size: text_size,
@@ -378,7 +360,7 @@ fn exec_image_make(entry: i32, text_size: i32, ok: i32) -> ExecImage {
   };
 }
 
-fn fsimage_make_base() -> FsImage {
+fn fsimage_make_base() returns FsImage {
   return FsImage {
     root_ino: 1,
     init_ino: 2,
@@ -387,7 +369,7 @@ fn fsimage_make_base() -> FsImage {
   };
 }
 
-fn fs_lookup_ino(fs: FsImage, path_hash: i32) -> i32 {
+fn fs_lookup_ino(fs: FsImage, path_hash: i32) returns i32 {
   let _root: i32 = fs.root_ino;
   if (path_hash == 47) {
     return 1;
@@ -404,7 +386,7 @@ fn fs_lookup_ino(fs: FsImage, path_hash: i32) -> i32 {
   return 0 - 2;
 }
 
-fn fs_resolve_path(fs: FsImage, mt: MountTable, path_hash: i32) -> i32 {
+fn fs_resolve_path(fs: FsImage, mt: MountTable, path_hash: i32) returns i32 {
   if (path_hash == 47) {
     return fs_lookup_ino(fs, path_hash);
   }
@@ -414,7 +396,7 @@ fn fs_resolve_path(fs: FsImage, mt: MountTable, path_hash: i32) -> i32 {
   return fs_lookup_ino(fs, path_hash);
 }
 
-fn fs_read_len(fs: FsImage, ino: i32) -> i32 {
+fn fs_read_len(fs: FsImage, ino: i32) returns i32 {
   let _root: i32 = fs.root_ino;
   if (ino == 2) {
     return 22;
@@ -428,7 +410,7 @@ fn fs_read_len(fs: FsImage, ino: i32) -> i32 {
   return 0 - 2;
 }
 
-fn exec_load_path(fs: FsImage, path_hash: i32) -> ExecImage {
+fn exec_load_path(fs: FsImage, path_hash: i32) returns ExecImage {
   let ino: i32 = fs_lookup_ino(fs, path_hash);
   if (ino < 0) {
     return exec_image_make(0, 0, 0);
@@ -440,7 +422,7 @@ fn exec_load_path(fs: FsImage, path_hash: i32) -> ExecImage {
   return exec_image_make(16384, sz, 1);
 }
 
-fn init_spawn_from_fs(fs: FsImage, mt: MountTable, pid: i32) -> UserTask {
+fn init_spawn_from_fs(fs: FsImage, mt: MountTable, pid: i32) returns UserTask {
   let sh_ino: i32 = fs_resolve_path(fs, mt, 702);
   if (sh_ino < 0) {
     return UserTask { pid: pid, entry: 0, argv_ptr: 0, state: 0 };
@@ -457,7 +439,7 @@ fn init_spawn_from_fs(fs: FsImage, mt: MountTable, pid: i32) -> UserTask {
   };
 }
 
-fn proctable_make(count: i32, p0: i32, p1: i32, p2: i32, p3: i32) -> ProcTable {
+fn proctable_make(count: i32, p0: i32, p1: i32, p2: i32, p3: i32) returns ProcTable {
   return ProcTable {
     count: count,
     p0: p0,
@@ -467,11 +449,11 @@ fn proctable_make(count: i32, p0: i32, p1: i32, p2: i32, p3: i32) -> ProcTable {
   };
 }
 
-fn proctable_seed(init_pid: i32, sh_pid: i32) -> ProcTable {
+fn proctable_seed(init_pid: i32, sh_pid: i32) returns ProcTable {
   return proctable_make(2, init_pid, sh_pid, 0, 0);
 }
 
-fn proctable_apply_fork(pt: ProcTable, child_pid: i32) -> ProcTable {
+fn proctable_apply_fork(pt: ProcTable, child_pid: i32) returns ProcTable {
   if (child_pid <= 0) {
     return pt;
   }
@@ -490,14 +472,14 @@ fn proctable_apply_fork(pt: ProcTable, child_pid: i32) -> ProcTable {
   return pt;
 }
 
-fn shell_cmd_echo(len: i32) -> i32 {
+fn shell_cmd_echo(len: i32) returns i32 {
   if (len < 0) {
     return 0 - 22;
   }
   return len;
 }
 
-fn shell_cmd_ls(fs: FsImage, mt: MountTable) -> i32 {
+fn shell_cmd_ls(fs: FsImage, mt: MountTable) returns i32 {
   let n0: i32 = fs_lookup_ino(fs, 47);
   let n1: i32 = fs_lookup_ino(fs, 701);
   let n2: i32 = fs_lookup_ino(fs, 702);
@@ -510,7 +492,7 @@ fn shell_cmd_ls(fs: FsImage, mt: MountTable) -> i32 {
   return 3;
 }
 
-fn shell_cmd_cat(fs: FsImage, mt: MountTable, path_hash: i32) -> i32 {
+fn shell_cmd_cat(fs: FsImage, mt: MountTable, path_hash: i32) returns i32 {
   let ino: i32 = fs_resolve_path(fs, mt, path_hash);
   if (ino < 0) {
     return ino;
@@ -518,7 +500,7 @@ fn shell_cmd_cat(fs: FsImage, mt: MountTable, path_hash: i32) -> i32 {
   return fs_read_len(fs, ino);
 }
 
-fn shell_cmd_mount(fs: FsImage) -> i32 {
+fn shell_cmd_mount(fs: FsImage) returns i32 {
   let ino: i32 = fs_lookup_ino(fs, 703);
   if (ino < 0) {
     return ino;
@@ -526,7 +508,7 @@ fn shell_cmd_mount(fs: FsImage) -> i32 {
   return 0;
 }
 
-fn shell_cmd_mount_apply(fs: FsImage, mt: MountTable) -> MountTable {
+fn shell_cmd_mount_apply(fs: FsImage, mt: MountTable) returns MountTable {
   let rc: i32 = shell_cmd_mount(fs);
   if (rc < 0) {
     return mt;
@@ -537,14 +519,14 @@ fn shell_cmd_mount_apply(fs: FsImage, mt: MountTable) -> MountTable {
   return mounttable_mount_root(mt, fs);
 }
 
-fn shell_cmd_ps(pt: ProcTable) -> i32 {
+fn shell_cmd_ps(pt: ProcTable) returns i32 {
   if (pt.count <= 0) {
     return 0 - 3;
   }
   return pt.count;
 }
 
-fn shell_cmd_ps_with_mount(pt: ProcTable, mt: MountTable) -> i32 {
+fn shell_cmd_ps_with_mount(pt: ProcTable, mt: MountTable) returns i32 {
   let base: i32 = shell_cmd_ps(pt);
   if (base < 0) {
     return base;
@@ -555,7 +537,7 @@ fn shell_cmd_ps_with_mount(pt: ProcTable, mt: MountTable) -> i32 {
   return base;
 }
 
-fn trap_event_make(kind: i32, from_el: i32, esr: i32, elr: i32, spsr: i32, x8_syscall: i32) -> TrapEvent {
+fn trap_event_make(kind: i32, from_el: i32, esr: i32, elr: i32, spsr: i32, x8_syscall: i32) returns TrapEvent {
   return TrapEvent {
     kind: kind,
     from_el: from_el,
@@ -566,7 +548,7 @@ fn trap_event_make(kind: i32, from_el: i32, esr: i32, elr: i32, spsr: i32, x8_sy
   };
 }
 
-fn trap_snapshot_make(trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, x0: i32, x1: i32, x2: i32, sys_route: i32) -> TrapSnapshot {
+fn trap_snapshot_make(trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, x0: i32, x1: i32, x2: i32, sys_route: i32) returns TrapSnapshot {
   return TrapSnapshot {
     trap_kind: trap_kind,
     esr: esr,
@@ -580,7 +562,7 @@ fn trap_snapshot_make(trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, x0
   };
 }
 
-fn trap_snapshot_slots_make(count: i32, trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, x0: i32, x1: i32, x2: i32, sys_route: i32) -> TrapSnapshotSlots {
+fn trap_snapshot_slots_make(count: i32, trap_kind: i32, esr: i32, elr: i32, spsr: i32, x8: i32, x0: i32, x1: i32, x2: i32, sys_route: i32) returns TrapSnapshotSlots {
   return TrapSnapshotSlots {
     slot_count: count,
     slot_kind: trap_kind,
@@ -595,7 +577,7 @@ fn trap_snapshot_slots_make(count: i32, trap_kind: i32, esr: i32, elr: i32, spsr
   };
 }
 
-fn trap_snapshot_slot_load(slots: TrapSnapshotSlots, byte_off: i32) -> i32 {
+fn trap_snapshot_slot_load(slots: TrapSnapshotSlots, byte_off: i32) returns i32 {
   if (byte_off == trap_snapshot_abi_off_count()) { return slots.slot_count; }
   if (byte_off == trap_snapshot_abi_off_kind()) { return slots.slot_kind; }
   if (byte_off == trap_snapshot_abi_off_esr()) { return slots.slot_esr; }
@@ -609,7 +591,7 @@ fn trap_snapshot_slot_load(slots: TrapSnapshotSlots, byte_off: i32) -> i32 {
   return 0;
 }
 
-fn trap_snapshot_from_slots(slots: TrapSnapshotSlots) -> TrapSnapshot {
+fn trap_snapshot_from_slots(slots: TrapSnapshotSlots) returns TrapSnapshot {
   return trap_snapshot_make(
     trap_snapshot_slot_load(slots, trap_snapshot_abi_off_kind()),
     trap_snapshot_slot_load(slots, trap_snapshot_abi_off_esr()),
@@ -623,7 +605,7 @@ fn trap_snapshot_from_slots(slots: TrapSnapshotSlots) -> TrapSnapshot {
   );
 }
 
-fn sys_dispatch_slots_ret(slots: TrapSnapshotSlots, cur: Process) -> i32 {
+fn sys_dispatch_slots_ret(slots: TrapSnapshotSlots, cur: Process) returns i32 {
   return sys_dispatch(
     trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x8()),
     trap_snapshot_slot_load(slots, trap_snapshot_abi_off_x0()),
@@ -633,21 +615,21 @@ fn sys_dispatch_slots_ret(slots: TrapSnapshotSlots, cur: Process) -> i32 {
   );
 }
 
-fn trap_snapshot_to_event(ts: TrapSnapshot) -> TrapEvent {
+fn trap_snapshot_to_event(ts: TrapSnapshot) returns TrapEvent {
   let kind: i32 = ts.trap_kind;
   return trap_event_make(kind, 1, ts.esr, ts.elr, ts.spsr, ts.x8);
 }
 
-fn trap_snapshot_to_trapframe(ts: TrapSnapshot) -> TrapFrame {
+fn trap_snapshot_to_trapframe(ts: TrapSnapshot) returns TrapFrame {
   return trapframe_make(ts.x8, ts.x0, ts.x1, ts.x2);
 }
 
-fn sys_dispatch_snapshot_ret(ts: TrapSnapshot, cur: Process) -> i32 {
+fn sys_dispatch_snapshot_ret(ts: TrapSnapshot, cur: Process) returns i32 {
   let tf: TrapFrame = trap_snapshot_to_trapframe(ts);
   return sys_dispatch_tf_ret(tf, cur);
 }
 
-fn trap_snapshot_route_id(ts: TrapSnapshot) -> i32 {
+fn trap_snapshot_route_id(ts: TrapSnapshot) returns i32 {
   let r: i32 = ts.sys_route;
   if (r == 1) { return r; }
   if (r == 2) { return r; }
@@ -657,21 +639,21 @@ fn trap_snapshot_route_id(ts: TrapSnapshot) -> i32 {
   return 255;
 }
 
-fn trap_is_syscall(ev: TrapEvent) -> i32 {
+fn trap_is_syscall(ev: TrapEvent) returns i32 {
   if (ev.kind == 1) {
     return 1;
   }
   return 0;
 }
 
-fn trap_route_syscall_no(ev: TrapEvent, x8_syscall: i32) -> i32 {
+fn trap_route_syscall_no(ev: TrapEvent, x8_syscall: i32) returns i32 {
   if (trap_is_syscall(ev) == 0) {
     return 0 - 38;
   }
   return x8_syscall;
 }
 
-fn sys_route_id(no: i32) -> i32 {
+fn sys_route_id(no: i32) returns i32 {
   if (no == 20) {
     return 1;
   }
@@ -687,7 +669,7 @@ fn sys_route_id(no: i32) -> i32 {
   return 255;
 }
 
-fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) -> i32 {
+fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) returns i32 {
   if (no == 20) {
     return sys_getpid(cur);
   }
@@ -703,11 +685,11 @@ fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) -> i32 {
   return 0 - 38;
 }
 
-fn sys_dispatch_tf_ret(tf: TrapFrame, cur: Process) -> i32 {
+fn sys_dispatch_tf_ret(tf: TrapFrame, cur: Process) returns i32 {
   return sys_dispatch(tf.syscall_no, tf.arg0, tf.arg1, tf.arg2, cur);
 }
 
-fn main() -> i32 {
+fn main() returns i32 {
   let init: Process = proc_new(1, 0, 1);
   let sh: Process = proc_new(2, 1, 1);
   let k0: Kernel = kernel_new();

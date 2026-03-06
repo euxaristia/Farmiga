@@ -1,21 +1,3 @@
-/*
- * Farmiga: minimal shell in Coatl
- * Copyright (C) 2026 euxaristia
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 struct ProcView {
   pid: i32,
   ppid: i32,
@@ -36,11 +18,11 @@ struct InitState {
   last_rc: i32
 }
 
-fn procview_make(pid: i32, ppid: i32, state: i32) -> ProcView {
+fn procview_make(pid: i32, ppid: i32, state: i32) returns ProcView {
   return ProcView { pid: pid, ppid: ppid, state: state };
 }
 
-fn fsview_make(root_ok: i32, init_ok: i32, sh_ok: i32, mtab_ok: i32) -> FsView {
+fn fsview_make(root_ok: i32, init_ok: i32, sh_ok: i32, mtab_ok: i32) returns FsView {
   return FsView {
     root_ok: root_ok,
     init_ok: init_ok,
@@ -49,23 +31,23 @@ fn fsview_make(root_ok: i32, init_ok: i32, sh_ok: i32, mtab_ok: i32) -> FsView {
   };
 }
 
-fn fsview_default() -> FsView {
+fn fsview_default() returns FsView {
   return fsview_make(1, 1, 1, 1);
 }
 
-fn sh_cmd_echo(len: i32) -> i32 {
+fn sh_cmd_echo(len: i32) returns i32 {
   if (len < 0) { return 0 - 22; }
   return len;
 }
 
-fn sh_cmd_ls(root_ok: i32) -> i32 {
+fn sh_cmd_ls(root_ok: i32) returns i32 {
   if (root_ok == 0) {
     return 0 - 2;
   }
   return 3;
 }
 
-fn sh_cmd_cat(sh_ok: i32, file_id: i32) -> i32 {
+fn sh_cmd_cat(sh_ok: i32, file_id: i32) returns i32 {
   if (sh_ok == 0) {
     return 0 - 2;
   }
@@ -75,22 +57,22 @@ fn sh_cmd_cat(sh_ok: i32, file_id: i32) -> i32 {
   return 0 - 2;
 }
 
-fn sh_cmd_mount(mtab_ok: i32) -> i32 {
+fn sh_cmd_mount(mtab_ok: i32) returns i32 {
   return 0;
 }
 
-fn sh_cmd_ps(count: i32) -> i32 {
+fn sh_cmd_ps(count: i32) returns i32 {
   if (count <= 0) {
     return 0 - 3;
   }
   return count;
 }
 
-fn sh_cmd_clear() -> i32 {
+fn sh_cmd_clear() returns i32 {
   return 1;
 }
 
-fn sh_dispatch(cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) -> i32 {
+fn sh_dispatch(cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) returns i32 {
   if (cmd_id == 1) { return sh_cmd_echo(a0); }
   if (cmd_id == 2) { return sh_cmd_ls(fs.root_ok); }
   if (cmd_id == 3) { return sh_cmd_cat(fs.sh_ok, a0); }
@@ -100,7 +82,7 @@ fn sh_dispatch(cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) -> i32 {
   return 0 - 38;
 }
 
-fn init_make(pid: i32) -> InitState {
+fn init_make(pid: i32) returns InitState {
   return InitState {
     pid: pid,
     launched_shell: 0,
@@ -109,7 +91,7 @@ fn init_make(pid: i32) -> InitState {
   };
 }
 
-fn init_launch_shell(st: InitState, fs: FsView) -> InitState {
+fn init_launch_shell(st: InitState, fs: FsView) returns InitState {
   if (fs.sh_ok == 0) {
     return InitState {
       pid: st.pid,
@@ -126,7 +108,7 @@ fn init_launch_shell(st: InitState, fs: FsView) -> InitState {
   };
 }
 
-fn init_run_once(st: InitState, cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) -> InitState {
+fn init_run_once(st: InitState, cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) returns InitState {
   let rc: i32 = sh_dispatch(cmd_id, a0, fs, proc_count);
   return InitState {
     pid: st.pid,
@@ -136,7 +118,7 @@ fn init_run_once(st: InitState, cmd_id: i32, a0: i32, fs: FsView, proc_count: i3
   };
 }
 
-fn main() -> i32 {
+fn main() returns i32 {
   let fs0: FsView = fsview_default();
   let _p0: ProcView = procview_make(1, 0, 1);
   let _p1: ProcView = procview_make(2, 1, 1);

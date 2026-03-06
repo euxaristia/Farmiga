@@ -18,7 +18,7 @@ coatl_const_dec() {
   local file="$1"
   local fn="$2"
   local line val
-  line="$(rg "^fn ${fn}\\(\\) -> i32 \\{ return [0-9]+; \\}\$" "$file" | head -n1 || true)"
+  line="$(rg "^fn ${fn}\\(\\) returns i32 \\{ return [0-9]+; \\}\$" "$file" | head -n1 || true)"
   val="$(printf '%s\n' "$line" | sed -n 's/^fn .* { return \([0-9][0-9]*\); }$/\1/p')"
   if [ -z "$val" ]; then
     echo "sync check failed: missing function $fn in $file" >&2

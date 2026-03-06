@@ -1,21 +1,3 @@
-/*
- * Farmiga: AArch64 boot entry
- * Copyright (C) 2026 euxaristia
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 .section .text.boot
 .globl _start
 .globl trap_snapshot_base
@@ -777,7 +759,7 @@ uart_tx_drain:
   cbz w3, 42b
   ret
 
-// strcmp(x0: s1, x1: str2) -> w0: 0 if equal
+// strcmp(x0: s1, x1: str2) returns w0: 0 if equal
 strcmp:
 1:
   ldrb w2, [x0], #1
@@ -790,7 +772,7 @@ strcmp:
   sub w0, w2, w3
   ret
 
-// str_startswith(x0: str, x1: prefix) -> w0: 1 if matches, 0 if not
+// str_startswith(x0: str, x1: prefix) returns w0: 1 if matches, 0 if not
 str_startswith:
 1:
   ldrb w2, [x1], #1
@@ -806,7 +788,7 @@ str_startswith:
   mov w0, #1
   ret
 
-// strlen(x0: str) -> x0: length
+// strlen(x0: str) returns x0: length
 strlen:
   mov x1, #0
 1:

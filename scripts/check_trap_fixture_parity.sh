@@ -33,7 +33,7 @@ fixture_val() {
 coatl_const_dec() {
   local fn="$1"
   local line val
-  line="$(rg "^fn ${fn}\\(\\) -> i32 \\{ return [0-9]+; \\}\$" "$coatl_file" | head -n1 || true)"
+  line="$(rg "^fn ${fn}\\(\\) returns i32 \\{ return [0-9]+; \\}\$" "$coatl_file" | head -n1 || true)"
   val="$(printf '%s\n' "$line" | sed -n 's/^fn .* { return \([0-9][0-9]*\); }$/\1/p')"
   if [ -z "$val" ]; then
     echo "fixture parity check failed: missing Coatl ABI function $fn in $coatl_file" >&2
