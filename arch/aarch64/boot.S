@@ -120,8 +120,6 @@ _start:
 
   ldr x0, =init_banner
   bl uart_puts
-  ldr x0, =shell_help_banner
-  bl uart_puts
   bl shell_prompt
 
 1:
@@ -556,11 +554,28 @@ shell_readline:
   cmp w1, #3
   b.eq 38f
 
+  // Handle ESC (27) for arrow keys etc.
+  cmp w1, #27
+  b.eq 50f
+
   cmp x4, #31
   b.ge 30b
   strb w1, [x0, x4]
   bl uart_putc
   add x4, x4, #1
+  b 30b
+
+50: // ESC sequence handler
+  bl uart_getc_blocking
+  cmp w1, #'['
+  b.ne 30b // Not a CSI sequence, ignore ESC and continue
+51:
+  bl uart_getc_blocking
+  // Sequences usually end with a char in range 64-126 (@ to ~)
+  cmp w1, #64
+  b.lt 51b
+  cmp w1, #126
+  b.gt 51b
   b 30b
 
 38: // Ctrl+C handler
