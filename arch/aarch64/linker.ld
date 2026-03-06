@@ -18,6 +18,13 @@ SECTIONS {
     *(.rodata*)
   } :rodata
 
+  . = ALIGN(4096);
+  .userland_hello : {
+    _userland_hello_start = .;
+    KEEP(*(.userland_hello))
+    _userland_hello_end = .;
+  } :rodata
+
   .data : {
     *(.data*)
   } :data

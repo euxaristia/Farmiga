@@ -1,0 +1,18 @@
+// Farmiga: Hello World in Coatl EL0
+// Using native Coatl compiler svc support
+
+fn sys_write(fd: i32, ptr: i32, len: i32) returns i32 {
+  svc 4, fd, ptr, len;
+  return 0; 
+}
+
+fn sys_exit(code: i32) returns i32 {
+  svc 1, code;
+  return 0;
+}
+
+fn main() returns i32 {
+  sys_write(1, 0, 13); 
+  sys_exit(0);
+  return 0;
+}

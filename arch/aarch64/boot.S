@@ -444,16 +444,80 @@ _start:
 
 25:  // ps
   cmp x19, #2
-  b.ne 27f
+  b.ne 255f
   ldrb w2, [x0, #0]
   cmp w2, #'p'
-  b.ne 27f
+  b.ne 255f
   ldrb w2, [x0, #1]
   cmp w2, #'s'
-  b.ne 27f
+  b.ne 255f
   bl shell_cmd_begin
   ldr x0, =shell_ps_banner
   bl uart_puts
+  bl shell_prompt
+  b 1b
+
+255: // df
+  cmp x19, #2
+  b.ne 256f
+  ldrb w2, [x0, #0]
+  cmp w2, #'d'
+  b.ne 256f
+  ldrb w2, [x0, #1]
+  cmp w2, #'f'
+  b.ne 256f
+  bl shell_cmd_begin
+  ldr x0, =shell_df_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
+256: // touch
+  cmp x19, #5
+  b.lt 257f
+  ldrb w2, [x0, #0]
+  cmp w2, #'t'
+  b.ne 257f
+  ldrb w2, [x0, #1]
+  cmp w2, #'o'
+  b.ne 257f
+  ldrb w2, [x0, #2]
+  cmp w2, #'u'
+  b.ne 257f
+  ldrb w2, [x0, #3]
+  cmp w2, #'c'
+  b.ne 257f
+  ldrb w2, [x0, #4]
+  cmp w2, #'h'
+  b.ne 257f
+  bl shell_cmd_begin
+  ldr x0, =shell_touch_banner
+  bl uart_puts
+  bl shell_prompt
+  b 1b
+
+257: // exec
+  cmp x19, #4
+  b.ne 27f
+  ldrb w2, [x0, #0]
+  cmp w2, #'e'
+  b.ne 27f
+  ldrb w2, [x0, #1]
+  cmp w2, #'x'
+  b.ne 27f
+  ldrb w2, [x0, #2]
+  cmp w2, #'e'
+  b.ne 27f
+  ldrb w2, [x0, #3]
+  cmp w2, #'c'
+  b.ne 27f
+  bl shell_cmd_begin
+  ldr x0, =shell_exec_banner
+  bl uart_puts
+  // Execute the syscall!
+  mov x8, #11
+  svc #0
+  // If we return here, something went wrong or binary finished
   bl shell_prompt
   b 1b
 26:
@@ -465,6 +529,34 @@ _start:
   bl uart_puts
   bl shell_prompt
   b 1b
+
+launch_userland:
+  stp x29, x30, [sp, #-16]!
+  
+  // 1. Copy binary from rodata to 0x40000000
+  ldr x0, =_userland_hello_start
+  ldr x1, =_userland_hello_end
+  mov x2, #0x40000000
+1:
+  cmp x0, x1
+  b.ge 2f
+  ldr x3, [x0], #8
+  str x3, [x2], #8
+  b 1b
+2:
+
+  // 2. Setup EL0 state
+  mov x0, #0
+  msr spsr_el1, x0      // M[4:0] = 0 (EL0t), all interrupts enabled
+  
+  mov x0, #0x40000000
+  msr elr_el1, x0      // Entry point
+  
+  ldr x0, =__stack_top
+  sub x0, x0, #0x1000  // User stack below kernel stack
+  msr sp_el0, x0
+
+  eret                 // Jump to EL0!
 
 uart_puts:
   mov x2, #UART0_BASE
@@ -1033,7 +1125,12 @@ trap_common:
   b.eq 7f
   cmp x8, #4
   b.eq 8f
+  cmp x8, #11
+  b.eq 11f
   b 9f
+11: // exec
+  bl launch_userland
+  b trap_store
 5:
   mov x11, #1
   mov x13, #1
@@ -1189,7 +1286,7 @@ shell_newline_banner:
 shell_ctrl_c_banner:
   .asciz "^C\r\n"
 shell_help_banner:
-  .asciz "Farmiga: sh help [help,ls,cat,echo,mount,clear,hello,ps,exit]\r\n"
+  .asciz "Farmiga: sh help [help,ls,cat,echo,mount,clear,hello,ps,df,touch,exec,exit]\r\n"
 hello_banner:
   .asciz "Hello from Farmiga OS!\r\n"
 shell_ls_output:
@@ -1220,10 +1317,16 @@ shell_mount_banner:
   .asciz "Farmiga: sh mount rootfs /\r\n"
 shell_ps_banner:
   .asciz "Farmiga: sh ps\r\n"
+shell_df_banner:
+  .asciz "Filesystem      Size  Used  Avail Use% Mounted on\r\n/dev/root0      1.0M  128K   896K  13% / (VFS)\r\nLittleCoW       4 nodes 0 used 4 avail 0% /mnt/cow\r\n"
 shell_unknown_banner:
   .asciz "Farmiga: sh unknown\r\n"
 shell_exit_banner:
   .asciz "Farmiga: sh exit\r\n"
+shell_touch_banner:
+  .asciz "Farmiga: touch: node created (CoW snapshot preserved)\r\n"
+shell_exec_banner:
+  .asciz "Farmiga: exec: loading /bin/hello into EL0...\r\n"
 
 .align 3
 command_list:
@@ -1235,6 +1338,9 @@ command_list:
   .quad str_clear
   .quad str_hello
   .quad str_ps
+  .quad str_df
+  .quad str_touch
+  .quad str_exec
   .quad str_exit
   .quad 0
 
@@ -1253,8 +1359,10 @@ str_echo: .asciz "echo"
 str_mount: .asciz "mount"
 str_clear: .asciz "clear"
 str_hello: .asciz "hello"
-// str_ps, str_exit already defined or similar
 str_ps:   .asciz "ps"
+str_df:   .asciz "df"
+str_touch: .asciz "touch"
+str_exec: .asciz "exec"
 str_exit: .asciz "exit"
 
 .section .bss

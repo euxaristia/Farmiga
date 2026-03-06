@@ -49,6 +49,9 @@ A64_ELF := $(BUILD_DIR)/farmiga-aarch64.elf
 A64_IMG := $(BUILD_DIR)/farmiga-aarch64.img
 A64_BOOT_OBJ := $(BUILD_DIR)/boot_aarch64.o
 COATL_KERNEL_OBJ := $(BUILD_DIR)/sysv_kernel.o
+U64_HELLO_BIN := $(BUILD_DIR)/hello.bin
+U64_HELLO_OBJ := $(BUILD_DIR)/hello_bin.o
+U64_SYSCALL_OBJ := $(BUILD_DIR)/syscall_user.o
 X86_ELF := $(BUILD_DIR)/farmiga-x86_64.elf
 X86_IMG := $(BUILD_DIR)/farmiga-x86_64.bin
 X86_BOOT_OBJ := $(BUILD_DIR)/boot_x86_64.o
@@ -99,8 +102,17 @@ $(COATL_KERNEL_OBJ): kernel/sysv_lib.coatl | $(BUILD_DIR)
 	$(COATL) build $(BUILD_DIR)/sysv_kernel_with_main.coatl -o $(BUILD_DIR)/sysv_lib.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
 	$(AS) -o $@ $(BUILD_DIR)/sysv_lib.s
 
-$(A64_ELF): $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
-	$(LD) -T arch/aarch64/linker.ld -o $@ $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ)
+$(U64_HELLO_BIN): userland/hello.coatl | $(BUILD_DIR)
+	$(COATL) build userland/hello.coatl -o $(BUILD_DIR)/hello.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
+	$(AS) -o $(BUILD_DIR)/hello.o $(BUILD_DIR)/hello.s
+	$(LD) -Ttext 0x40000000 -o $(BUILD_DIR)/hello.elf $(BUILD_DIR)/hello.o
+	$(OBJCOPY) -O binary $(BUILD_DIR)/hello.elf $@
+
+$(U64_HELLO_OBJ): $(U64_HELLO_BIN) | $(BUILD_DIR)
+	$(OBJCOPY) -I binary -O elf64-littleaarch64 -B aarch64 --rename-section .data=.userland_hello $< $@
+
+$(A64_ELF): $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ) $(U64_HELLO_OBJ) arch/aarch64/linker.ld | $(BUILD_DIR)
+	$(LD) -T arch/aarch64/linker.ld -o $@ $(A64_BOOT_OBJ) $(COATL_KERNEL_OBJ) $(U64_HELLO_OBJ)
 
 $(A64_IMG): $(A64_ELF) | $(BUILD_DIR)
 	$(OBJCOPY) -O binary $< $@
