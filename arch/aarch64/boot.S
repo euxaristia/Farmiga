@@ -67,6 +67,14 @@
 .endif
 
 _start:
+  // 0. Disable MMU, enable alignment checks, and allow EL0 access
+  mrs x0, sctlr_el1
+  bic x0, x0, #1        // Clear M (MMU disabled)
+  orr x0, x0, #(1 << 1) // Set A (Alignment check)
+  orr x0, x0, #(1 << 9) // Set UMA (User Mask Access)
+  msr sctlr_el1, x0
+  isb
+
   ldr x0, =__stack_top
   mov sp, x0
 
@@ -122,7 +130,7 @@ _start:
   bl uart_puts
   bl shell_prompt
 
-1:
+.L_main_shell_loop:
   bl shell_readline
   mov x19, x1
   cmp x19, #0
@@ -148,7 +156,7 @@ _start:
   ldr x0, =clear_screen_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 10:
   cmp x19, #4
@@ -169,7 +177,7 @@ _start:
   ldr x0, =shell_help_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 20:
   cmp x19, #4
@@ -190,7 +198,7 @@ _start:
   ldr x0, =shell_exit_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 21:  // ls
   cmp x19, #2
@@ -205,7 +213,7 @@ _start:
   ldr x0, =shell_ls_output
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 22:  // cat
   cmp x19, #3
@@ -281,21 +289,21 @@ _start:
   ldr x0, =shell_newline_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 225: // cat hello.txt
   bl shell_cmd_begin
   ldr x0, =file_hello_content
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 226: // cat sh or bin/sh
   bl shell_cmd_begin
   ldr x0, =file_sh_content
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 228: // cat directory
   bl shell_cmd_begin
@@ -306,7 +314,7 @@ _start:
   ldr x0, =shell_cat_is_dir
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 227: // command didn't match cat with args, restore x0 and continue
   ldr x0, =shell_line_buf
@@ -337,7 +345,7 @@ _start:
   bl uart_mode_tx_only
   bl shell_cmd_begin
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 23:  // echo
   cmp x19, #4
@@ -392,7 +400,7 @@ _start:
   ldr x0, =shell_newline_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 24:  // mount
   cmp x19, #5
@@ -416,7 +424,7 @@ _start:
   ldr x0, =shell_mount_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 245: // hello
   cmp x19, #5
@@ -440,7 +448,7 @@ _start:
   ldr x0, =hello_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 25:  // ps
   cmp x19, #2
@@ -455,7 +463,7 @@ _start:
   ldr x0, =shell_ps_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 255: // df
   cmp x19, #2
@@ -470,7 +478,7 @@ _start:
   ldr x0, =shell_df_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 256: // touch
   cmp x19, #5
@@ -494,7 +502,7 @@ _start:
   ldr x0, =shell_touch_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 257: // exec
   cmp x19, #4
@@ -514,49 +522,96 @@ _start:
   bl shell_cmd_begin
   ldr x0, =shell_exec_banner
   bl uart_puts
-  // Execute the syscall!
-  mov x8, #11
-  svc #0
-  // If we return here, something went wrong or binary finished
-  bl shell_prompt
-  b 1b
+  b launch_userland
+
 26:
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 27:
   bl shell_cmd_begin
   ldr x0, =shell_unknown_banner
   bl uart_puts
   bl shell_prompt
-  b 1b
+  b .L_main_shell_loop
 
 launch_userland:
-  stp x29, x30, [sp, #-16]!
+  msr daifset, #0xf     // Disable all interrupts during transition
   
-  // 1. Copy binary from rodata to 0x40000000
-  ldr x0, =_userland_hello_start
-  ldr x1, =_userland_hello_end
-  mov x2, #0x40000000
-1:
-  cmp x0, x1
-  b.ge 2f
-  ldr x3, [x0], #8
-  str x3, [x2], #8
-  b 1b
-2:
+  // 1. Direct Execution: No copy needed, jump to _userland_hello_start
+  ic ialluis
+  isb
 
   // 2. Setup EL0 state
   mov x0, #0
-  msr spsr_el1, x0      // M[4:0] = 0 (EL0t), all interrupts enabled
-  
-  mov x0, #0x40000000
-  msr elr_el1, x0      // Entry point
-  
-  ldr x0, =__stack_top
-  sub x0, x0, #0x1000  // User stack below kernel stack
+  msr spsr_el1, x0
+
+  adrp x0, _userland_hello_start
+  add x0, x0, :lo12:_userland_hello_start
+  msr elr_el1, x0
+
+  mov x0, #0x40090000
+  // Stack area
   msr sp_el0, x0
 
-  eret                 // Jump to EL0!
+  // 3. Clear ALL general purpose registers
+  mov x0, #0
+  mov x1, #0
+  mov x2, #0
+  mov x3, #0
+  mov x4, #0
+  mov x5, #0
+  mov x6, #0
+  mov x7, #0
+  mov x8, #0
+  mov x9, #0
+  mov x10, #0
+  mov x11, #0
+  mov x12, #0
+  mov x13, #0
+  mov x14, #0
+  mov x15, #0
+  mov x16, #0
+  mov x17, #0
+  mov x18, #0
+  mov x19, #0
+  mov x20, #0
+  mov x21, #0
+  mov x22, #0
+  mov x23, #0
+  mov x24, #0
+  mov x25, #0
+  mov x26, #0
+  mov x27, #0
+  mov x28, #0
+  mov x29, #0
+  mov x30, #0
+
+  eret                 // Absolute jump to EL0
+
+// Print x0 as hex
+uart_put_hex:
+  stp x29, x30, [sp, #-32]!
+  stp x19, x20, [sp, #16]
+  mov x19, x0
+  mov x20, #60
+10:
+  lsr x0, x19, x20
+  and x0, x0, #0xf
+  cmp x0, #10
+  b.ge 20f
+  add w1, w0, #'0'
+  b 30f
+20:
+  add w1, w0, #('A' - 10)
+30:
+  bl uart_putc
+  cbz x20, 40f
+  sub x20, x20, #4
+  b 10b
+40:
+  ldp x19, x20, [sp, #16]
+  ldp x29, x30, [sp], #32
+  ret
 
 uart_puts:
   mov x2, #UART0_BASE
@@ -967,9 +1022,19 @@ exc_curr_spx_serr:
   mov x10, #4
   b trap_common
 exc_lower_a64_sync:
+  stp x14, x15, [sp, #-16]!
+  mov x15, #0x09000000
+  mov w14, #'!'
+  str w14, [x15]
+  ldp x14, x15, [sp], #16
   mov x10, #1
   b trap_common
 exc_lower_a64_irq:
+  stp x14, x15, [sp, #-16]!
+  mov x15, #0x09000000
+  mov w14, #'!'
+  str w14, [x15]
+  ldp x14, x15, [sp], #16
   mov x10, #2
   b trap_common
 exc_lower_a64_fiq:
@@ -992,6 +1057,18 @@ exc_lower_a32_serr:
   b trap_common
 
 trap_common:
+  stp x0, x1, [sp, #-16]!
+  stp x2, x3, [sp, #-16]!
+  stp x4, x5, [sp, #-16]!
+  stp x6, x7, [sp, #-16]!
+  stp x8, x9, [sp, #-16]!
+  stp x10, x11, [sp, #-16]!
+  stp x12, x13, [sp, #-16]!
+  stp x14, x15, [sp, #-16]!
+  str x30, [sp, #-16]!
+
+  mov x29, sp
+
   ldr x12, =last_x0
   str x0, [x12]
   ldr x12, =last_x1
@@ -1022,58 +1099,87 @@ trap_common:
   add x1, x1, #1
   str x1, [x0]
 
-  ldr x15, =trap_verbose_enabled
-  ldr x15, [x15]
-  cbz x15, 50f
-
+  // DIAGNOSTIC: Always print sync fault info
   cmp x10, #1
-  b.eq 11f
-  cmp x10, #2
-  b.eq 12f
-  cmp x10, #3
-  b.eq 13f
-  cmp x10, #4
-  b.eq 14f
-  b 15f
-11:
-  .if TRAP_VERBOSE
+  b.ne .L_trap_diag_done
   ldr x0, =trap_kind_sync_banner
   bl uart_puts
-  .endif
-  b 16f
-12:
-  .if TRAP_VERBOSE
+  ldr x0, =shell_esr_banner
+  bl uart_puts
+  mrs x0, esr_el1
+  bl uart_put_hex
+  ldr x0, =shell_newline_banner
+  bl uart_puts
+  ldr x0, =shell_elr_banner
+  bl uart_puts
+  mrs x0, elr_el1
+  bl uart_put_hex
+  ldr x0, =shell_newline_banner
+  bl uart_puts
+.L_trap_diag_done:
+
+  ldr x15, =trap_verbose_enabled
+  ldr x15, [x15]
+  cbz x15, .L_trap_kind_done
+
+  // Always print trap kind for observability
+  cmp x10, #1
+  b.eq .L_trap_kind_sync
+  cmp x10, #2
+  b.eq .L_trap_kind_irq
+  cmp x10, #3
+  b.eq .L_trap_kind_fiq
+  cmp x10, #4
+  b.eq .L_trap_kind_serr
+  b .L_trap_kind_unknown
+.L_trap_kind_sync:
+  ldr x0, =trap_kind_sync_banner
+  bl uart_puts
+  
+  ldr x0, =shell_esr_banner
+  bl uart_puts
+  mrs x0, esr_el1
+  bl uart_put_hex
+  ldr x0, =shell_newline_banner
+  bl uart_puts
+
+  ldr x0, =shell_elr_banner
+  bl uart_puts
+  mrs x0, elr_el1
+  bl uart_put_hex
+  ldr x0, =shell_newline_banner
+  bl uart_puts
+
+  b .L_trap_kind_done
+.L_trap_kind_irq:
   ldr x0, =trap_kind_irq_banner
   bl uart_puts
-  .endif
-  b 16f
-13:
-  .if TRAP_VERBOSE
+  b .L_trap_kind_done
+.L_trap_kind_fiq:
   ldr x0, =trap_kind_fiq_banner
   bl uart_puts
-  .endif
-  b 16f
-14:
-  .if TRAP_VERBOSE
+  b .L_trap_kind_done
+.L_trap_kind_serr:
   ldr x0, =trap_kind_serr_banner
   bl uart_puts
-  .endif
-  b 16f
-15:
-  .if TRAP_VERBOSE
+  b .L_trap_kind_done
+.L_trap_kind_unknown:
   ldr x0, =trap_kind_unknown_banner
   bl uart_puts
-  .endif
-16:
+.L_trap_kind_done:
+
+  ldr x15, =trap_verbose_enabled
+  ldr x15, [x15]
+  cbz x15, .L_trap_no_verbose
 
   cmp x10, #1
-  b.ne 10f
+  b.ne .L_trap_none
 
   ldr x1, =last_esr_el1
   ldr x2, [x1]
   ubfx x2, x2, #26, #6
   cmp x2, #0x15
-  b.eq 3f
+  b.eq .L_trap_syscall
 
   .if TRAP_VERBOSE
   ldr x0, =trap_banner
@@ -1083,7 +1189,7 @@ trap_common:
   .endif
   b trap_store
 
-3:
+.L_trap_syscall:
   .if TRAP_VERBOSE
   ldr x0, =syscall_banner
   bl uart_puts
@@ -1091,47 +1197,47 @@ trap_common:
   ldr x0, =last_x0
   ldr x1, [x0]
   cmp x1, #1
-  b.ne 31f
+  b.ne .L_trap_sys_arg0_done
   .if TRAP_VERBOSE
   ldr x0, =sys_arg_x0_fd1_banner
   bl uart_puts
   .endif
-31:
+.L_trap_sys_arg0_done:
   ldr x0, =last_x1
   ldr x1, [x0]
   cmp x1, #4096
-  b.ne 32f
+  b.ne .L_trap_sys_arg1_done
   .if TRAP_VERBOSE
   ldr x0, =sys_arg_x1_ptr4096_banner
   bl uart_puts
   .endif
-32:
+.L_trap_sys_arg1_done:
   ldr x0, =last_x2
   ldr x1, [x0]
   cmp x1, #16
-  b.ne 33f
+  b.ne .L_trap_sys_arg2_done
   .if TRAP_VERBOSE
   ldr x0, =sys_arg_x2_len16_banner
   bl uart_puts
   .endif
-33:
+.L_trap_sys_arg2_done:
   ldr x1, =last_x8
   ldr x8, [x1]
   cmp x8, #20
-  b.eq 5f
+  b.eq .L_trap_sys_getpid
   cmp x8, #64
-  b.eq 6f
+  b.eq .L_trap_sys_getppid
   cmp x8, #1
-  b.eq 7f
+  b.eq .L_trap_sys_exit
   cmp x8, #4
-  b.eq 8f
+  b.eq .L_trap_sys_write
   cmp x8, #11
-  b.eq 11f
-  b 9f
-11: // exec
+  b.eq .L_trap_sys_exec
+  b .L_trap_sys_unknown
+.L_trap_sys_exec: // exec
   bl launch_userland
   b trap_store
-5:
+.L_trap_sys_getpid:
   mov x11, #1
   mov x13, #1
   .if TRAP_VERBOSE
@@ -1139,7 +1245,7 @@ trap_common:
   bl uart_puts
   .endif
   b trap_store
-6:
+.L_trap_sys_getppid:
   mov x11, #2
   mov x13, #0
   .if TRAP_VERBOSE
@@ -1147,31 +1253,39 @@ trap_common:
   bl uart_puts
   .endif
   b trap_store
-7:
+.L_trap_sys_exit: // exit
   mov x11, #3
-  mov x13, #0
-  .if TRAP_VERBOSE
   ldr x0, =sys_exit_banner
   bl uart_puts
-  .endif
-  b trap_store
-8:
+  // Check if EL0
+  ldr x0, =last_spsr_el1
+  ldr x1, [x0]
+  and x1, x1, #0xf
+  cbnz x1, trap_store
+  // Return to shell
+  ldr x0, =__stack_top
+  mov sp, x0
+  bl shell_prompt
+  b .L_main_shell_loop
+
+.L_trap_sys_write: // write
   mov x11, #4
+  ldr x0, =last_x1
+  ldr x0, [x0]
+  cbz x0, .L_trap_sys_write_skip
+  bl uart_puts
+.L_trap_sys_write_skip:
   ldr x14, =last_x2
   ldr x13, [x14]
-  .if TRAP_VERBOSE
-  ldr x0, =sys_write_banner
-  bl uart_puts
-  .endif
   b trap_store
-9:
+.L_trap_sys_unknown:
   mov x11, #255
   .if TRAP_VERBOSE
   ldr x0, =sys_unknown_banner
   bl uart_puts
   .endif
   b trap_store
-10:
+.L_trap_none:
   .if TRAP_VERBOSE
   ldr x0, =trap_banner
   bl uart_puts
@@ -1183,16 +1297,28 @@ trap_store:
   str x11, [x0]
   ldr x0, =last_sys_ret
   str x13, [x0]
-  cmp x13, #16
-  b.ne 41f
-  .if TRAP_VERBOSE
-  ldr x0, =sys_ret_16_banner
-  bl uart_puts
-  .endif
-41:
-  b 2f
 
-50:
+  // Advance ELR for sync exceptions (syscalls)
+  cmp x10, #1
+  b.ne .L_trap_advance_elr_done
+  
+  // Logic: only advance if trap came from EL0
+  ldr x1, =last_spsr_el1
+  ldr x1, [x1]
+  and x1, x1, #0xf
+  cbnz x1, .L_trap_advance_elr_done // Came from EL1h, don't advance
+  
+  ldr x1, =last_x8
+  ldr x8, [x1]
+  cmp x8, #111
+  b.eq .L_trap_advance_elr_done
+  mrs x0, elr_el1
+  add x0, x0, #4
+  msr elr_el1, x0
+.L_trap_advance_elr_done:
+  b trap_exit
+
+.L_trap_no_verbose:
   cmp x10, #1
   b.ne trap_store
   ldr x1, =last_esr_el1
@@ -1203,36 +1329,49 @@ trap_store:
   ldr x1, =last_x8
   ldr x8, [x1]
   cmp x8, #20
-  b.eq 51f
+  b.eq .L_trap_sys_getpid_no_verbose
   cmp x8, #64
-  b.eq 52f
+  b.eq .L_trap_sys_getppid_no_verbose
   cmp x8, #1
-  b.eq 53f
+  b.eq .L_trap_sys_exit_no_verbose
   cmp x8, #4
-  b.eq 54f
-  b 59f
-51:
+  b.eq .L_trap_sys_write_no_verbose
+  b .L_trap_sys_unknown_no_verbose
+.L_trap_sys_getpid_no_verbose:
   mov x11, #1
   mov x13, #1
   b trap_store
-52:
+.L_trap_sys_getppid_no_verbose:
   mov x11, #2
   mov x13, #0
   b trap_store
-53:
+.L_trap_sys_exit_no_verbose:
   mov x11, #3
   mov x13, #0
   b trap_store
-54:
+.L_trap_sys_write_no_verbose:
   mov x11, #4
   ldr x14, =last_x2
   ldr x13, [x14]
   b trap_store
-59:
+.L_trap_sys_unknown_no_verbose:
   mov x11, #255
-2:
-  wfe
-  b 2b
+
+trap_exit:
+  mov x15, #0x09000000
+  mov w14, #'?'
+  str w14, [x15]
+
+  ldr x30, [sp], #16
+  ldp x14, x15, [sp], #16
+  ldp x12, x13, [sp], #16
+  ldp x10, x11, [sp], #16
+  ldp x8, x9, [sp], #16
+  ldp x6, x7, [sp], #16
+  ldp x4, x5, [sp], #16
+  ldp x2, x3, [sp], #16
+  ldp x0, x1, [sp], #16
+  eret
 
 .section .rodata
 clear_screen_banner:
@@ -1241,7 +1380,6 @@ boot_banner:
   .asciz "Farmiga: aarch64 stage0\r\n"
 coatl_link_ok_banner:
   .asciz "Farmiga: Coatl kernel link established\r\n"
-.if TRAP_VERBOSE
 trap_banner:
   .asciz "Farmiga: el1 trap entered\r\n"
 trap_kind_sync_banner:
@@ -1276,7 +1414,12 @@ sys_unknown_banner:
   .asciz "Farmiga: syscall unknown\r\n"
 route_none_banner:
   .asciz "Farmiga: route none\r\n"
-.endif
+shell_eret_banner:
+  .asciz "Farmiga: jump to EL0...\r\n"
+shell_esr_banner:
+  .asciz "  ESR_EL1: 0x"
+shell_elr_banner:
+  .asciz "  ELR_EL1: 0x"
 init_banner:
   .asciz "Farmiga: init started\r\n"
 shell_prompt_banner:

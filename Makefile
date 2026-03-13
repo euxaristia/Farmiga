@@ -40,7 +40,7 @@ EXPECTED_SYSCALL_ARG_X2_BANNER ?= Farmiga: syscall arg x2=16
 EXPECTED_SYSCALL_RET_X0_16_BANNER ?= Farmiga: syscall ret x0=16
 EXPECTED_X86_BANNER ?= Farmiga: x86_64 stage0
 
-COATL ?= /home/euxaristia/Projects/Coatl/coatl
+COATL ?= /home/euxaristia/Projects/Coatl/coatl.py
 COATL_ARCH ?= x86_64
 COATL_TOOLCHAIN ?= ir
 
@@ -91,6 +91,8 @@ toolchain-preflight:
 aarch64: toolchain-aarch64 $(A64_ELF) $(A64_IMG)
 x86_64: toolchain-x86_64 $(X86_ELF) $(X86_IMG)
 
+U64_LINK_ADDR ?= 0x40100000
+
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
@@ -102,11 +104,11 @@ $(COATL_KERNEL_OBJ): kernel/sysv_lib.coatl | $(BUILD_DIR)
 	$(COATL) build $(BUILD_DIR)/sysv_kernel_with_main.coatl -o $(BUILD_DIR)/sysv_lib.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
 	$(AS) -o $@ $(BUILD_DIR)/sysv_lib.s
 
-$(U64_HELLO_BIN): userland/hello.coatl | $(BUILD_DIR)
-	$(COATL) build userland/hello.coatl -o $(BUILD_DIR)/hello.s --arch=aarch64 --toolchain=$(COATL_TOOLCHAIN)
-	$(AS) -o $(BUILD_DIR)/hello.o $(BUILD_DIR)/hello.s
-	$(LD) -Ttext 0x40000000 -o $(BUILD_DIR)/hello.elf $(BUILD_DIR)/hello.o
+$(U64_HELLO_BIN): userland/hello.S | $(BUILD_DIR)
+	$(AS) -o $(BUILD_DIR)/hello.o $<
+	$(LD) -Ttext 0x40086000 -o $(BUILD_DIR)/hello.elf $(BUILD_DIR)/hello.o
 	$(OBJCOPY) -O binary $(BUILD_DIR)/hello.elf $@
+
 
 $(U64_HELLO_OBJ): $(U64_HELLO_BIN) | $(BUILD_DIR)
 	$(OBJCOPY) -I binary -O elf64-littleaarch64 -B aarch64 --rename-section .data=.userland_hello $< $@

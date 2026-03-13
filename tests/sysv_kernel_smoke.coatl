@@ -175,5 +175,10 @@ fn main() returns i32 {
   if (sys_write(0 - 1, 4096, 2) != (0 - 9)) { return 21; }
   if (sys_write(1, 4096, 0 - 1) != (0 - 22)) { return 22; }
 
+  let cfs0: LittleCow = cow_new();
+  let cfs1: LittleCow = cow_write(cfs0, 1, 42);
+  if (cow_read(cfs0, 1) != 0) { return 80; } // Snapshot check: original must be 0
+  if (cow_read(cfs1, 1) != 42) { return 81; } // New version check: must be 42
+
   return 0;
 }

@@ -1,18 +1,11 @@
-// Farmiga: Hello World in Coatl EL0
-// Using native Coatl compiler svc support
-
-fn sys_write(fd: i32, ptr: i32, len: i32) returns i32 {
-  svc 4, fd, ptr, len;
-  return 0; 
-}
+// Farmiga: Simple EL0 Exit Test
+extern fn __syscall(no: i32, a0: i32, a1: i32, a2: i32) returns i32;
 
 fn sys_exit(code: i32) returns i32 {
-  svc 1, code;
-  return 0;
+  return __syscall(1, code, 0, 0);
 }
 
 fn main() returns i32 {
-  sys_write(1, 0, 13); 
-  sys_exit(0);
+  sys_exit(42);
   return 0;
 }

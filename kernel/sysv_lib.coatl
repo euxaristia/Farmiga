@@ -688,3 +688,29 @@ fn sys_dispatch(no: i32, a0: i32, a1: i32, a2: i32, cur: Process) returns i32 {
 fn sys_dispatch_tf_ret(tf: TrapFrame, cur: Process) returns i32 {
   return sys_dispatch(tf.syscall_no, tf.arg0, tf.arg1, tf.arg2, cur);
 }
+
+struct CowNode { ino: i32, val: i32 }
+struct LittleCow { n0: CowNode, n1: CowNode, n2: CowNode, n3: CowNode }
+
+fn cow_new() returns LittleCow {
+  return LittleCow {
+    n0: CowNode { ino: 0, val: 0 }, n1: CowNode { ino: 1, val: 0 },
+    n2: CowNode { ino: 2, val: 0 }, n3: CowNode { ino: 3, val: 0 }
+  };
+}
+
+fn cow_read(fs: LittleCow, ino: i32) returns i32 {
+  if (ino == 0) { let n: CowNode = fs.n0; return n.val; }
+  if (ino == 1) { let n: CowNode = fs.n1; return n.val; }
+  if (ino == 2) { let n: CowNode = fs.n2; return n.val; }
+  if (ino == 3) { let n: CowNode = fs.n3; return n.val; }
+  return 0 - 1;
+}
+
+fn cow_write(fs: LittleCow, ino: i32, val: i32) returns LittleCow {
+  if (ino == 0) { return LittleCow { n0: CowNode { ino: 0, val: val }, n1: fs.n1, n2: fs.n2, n3: fs.n3 }; }
+  if (ino == 1) { return LittleCow { n0: fs.n0, n1: CowNode { ino: 1, val: val }, n2: fs.n2, n3: fs.n3 }; }
+  if (ino == 2) { return LittleCow { n0: fs.n0, n1: fs.n1, n2: CowNode { ino: 2, val: val }, n3: fs.n3 }; }
+  if (ino == 3) { return LittleCow { n0: fs.n0, n1: fs.n1, n2: fs.n2, n3: CowNode { ino: 3, val: val } }; }
+  return fs;
+}

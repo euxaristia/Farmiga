@@ -72,6 +72,10 @@ fn sh_cmd_clear() returns i32 {
   return 1;
 }
 
+fn sh_cmd_touch() returns i32 {
+  return 0;
+}
+
 fn sh_dispatch(cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) returns i32 {
   if (cmd_id == 1) { return sh_cmd_echo(a0); }
   if (cmd_id == 2) { return sh_cmd_ls(fs.root_ok); }
@@ -79,6 +83,7 @@ fn sh_dispatch(cmd_id: i32, a0: i32, fs: FsView, proc_count: i32) returns i32 {
   if (cmd_id == 4) { return sh_cmd_mount(fs.mtab_ok); }
   if (cmd_id == 5) { return sh_cmd_ps(proc_count); }
   if (cmd_id == 6) { return sh_cmd_clear(); }
+  if (cmd_id == 7) { return sh_cmd_touch(); }
   return 0 - 38;
 }
 
